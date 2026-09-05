@@ -102,7 +102,7 @@ final class Plugin
 
     private function registerHooks(): void
     {
-        add_action('admin_menu', [$this, 'registerAdmin']);
+        $this->registerAdmin();
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
         add_action('init', [$this, 'registerCronSchedules']);
         add_action('init', [$this, 'registerFrontend']);
