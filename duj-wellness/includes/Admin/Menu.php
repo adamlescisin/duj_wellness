@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Duj\Wellness\Admin;
 
 use Duj\Wellness\Support\Settings;
-use Duj\Wellness\Admin\StatsPage;
 
 /**
  * Registruje admin menu a enqueue admin assetů.
