@@ -22,9 +22,7 @@ use Duj\Wellness\Repository\AccessCodeRepository;
 use Duj\Wellness\Repository\AccommodationRepository;
 use Duj\Wellness\Repository\BookingItemRepository;
 use Duj\Wellness\Repository\BookingRepository;
-use Duj\Wellness\Repository\BookingRepositoryInterface;
 use Duj\Wellness\Repository\DayLockRepository;
-use Duj\Wellness\Repository\DayLockRepositoryInterface;
 use Duj\Wellness\Repository\PriceRepository;
 use Duj\Wellness\Repository\ResourceRepository;
 use Duj\Wellness\Repository\ScheduleRepository;
@@ -34,12 +32,20 @@ use Duj\Wellness\Notification\Channels\TelegramChannel;
 use Duj\Wellness\Notification\IcsGenerator;
 use Duj\Wellness\Notification\NotificationService;
 use Duj\Wellness\Notification\TemplateRenderer;
+use Duj\Wellness\Admin\Menu;
 use Duj\Wellness\Frontend\Assets;
 use Duj\Wellness\Frontend\Shortcode;
 use Duj\Wellness\Payment\StripeGatewayFactory;
 use Duj\Wellness\Payment\StripeWebhookHandler;
 use Duj\Wellness\Rest\AccessCodeController;
 use Duj\Wellness\Rest\ActionController;
+use Duj\Wellness\Rest\AdminAccommodationController;
+use Duj\Wellness\Rest\AdminBookingsController;
+use Duj\Wellness\Rest\AdminNotificationsController;
+use Duj\Wellness\Rest\AdminPricingController;
+use Duj\Wellness\Rest\AdminScheduleController;
+use Duj\Wellness\Rest\AdminSettingsController;
+use Duj\Wellness\Rest\AdminTemplatesController;
 use Duj\Wellness\Rest\AvailabilityController;
 use Duj\Wellness\Rest\BookingsController;
 use Duj\Wellness\Rest\WebhooksController;
@@ -89,7 +95,7 @@ final class Plugin
 
     private function registerHooks(): void
     {
-        add_action('admin_menu', [$this, 'registerAdminMenu']);
+        add_action('admin_menu', [$this, 'registerAdmin']);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
         add_action('init', [$this, 'registerCronSchedules']);
         add_action('init', [$this, 'registerFrontend']);
@@ -105,23 +111,9 @@ final class Plugin
         (new Shortcode($assets))->register();
     }
 
-    public function registerAdminMenu(): void
+    public function registerAdmin(): void
     {
-        add_menu_page(
-            __('Wellness rezervace', 'duj-wellness'),
-            __('Wellness', 'duj-wellness'),
-            'duj_manage_bookings',
-            'duj-wellness',
-            static function (): void {
-                echo '<div class="wrap"><h1>'
-                    . esc_html__('Wellness rezervace — Domeček u Josefa', 'duj-wellness')
-                    . '</h1><p>'
-                    . esc_html__('Plugin je aktivní. Rezervační systém bude dostupný po dokončení implementace.', 'duj-wellness')
-                    . '</p></div>';
-            },
-            'dashicons-heart',
-            30
-        );
+        (new Menu())->register();
     }
 
     public function registerCronSchedules(): void
@@ -194,6 +186,15 @@ final class Plugin
             $bookingSvc,
             $notificationSvc,
         ))->register();
+
+        // Admin REST controllers
+        (new AdminBookingsController($bookingRepo, $bookingSvc, $notificationSvc))->register();
+        (new AdminScheduleController())->register();
+        (new AdminPricingController())->register();
+        (new AdminAccommodationController())->register();
+        (new AdminTemplatesController())->register();
+        (new AdminNotificationsController())->register();
+        (new AdminSettingsController())->register();
     }
 
     private function buildBookingService(\wpdb $wpdb): BookingService
