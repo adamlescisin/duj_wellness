@@ -30,6 +30,7 @@ use Duj\Wellness\Repository\ResourceRepository;
 use Duj\Wellness\Repository\ScheduleRepository;
 use Duj\Wellness\Notification\ActionTokenService;
 use Duj\Wellness\Notification\Channels\EmailChannel;
+use Duj\Wellness\Notification\Channels\SmsChannel;
 use Duj\Wellness\Notification\Channels\TelegramChannel;
 use Duj\Wellness\Notification\IcsGenerator;
 use Duj\Wellness\Notification\NotificationService;
@@ -49,6 +50,7 @@ use Duj\Wellness\Rest\AdminNotificationsController;
 use Duj\Wellness\Rest\AdminPricingController;
 use Duj\Wellness\Rest\AdminScheduleController;
 use Duj\Wellness\Rest\AdminSettingsController;
+use Duj\Wellness\Rest\AdminStatsController;
 use Duj\Wellness\Rest\AdminTemplatesController;
 use Duj\Wellness\Rest\AvailabilityController;
 use Duj\Wellness\Rest\BookingsController;
@@ -209,6 +211,7 @@ final class Plugin
         (new AdminTemplatesController())->register();
         (new AdminNotificationsController())->register();
         (new AdminSettingsController())->register();
+        (new AdminStatsController())->register();
     }
 
     private function buildBookingService(\wpdb $wpdb): BookingService
@@ -259,6 +262,7 @@ final class Plugin
             new ActionTokenService($wpdb),
             new EmailChannel($settings),
             new TelegramChannel($settings),
+            new SmsChannel($settings),
         );
     }
 

@@ -21,6 +21,7 @@ final class NotificationService
         private readonly ActionTokenServiceInterface $tokenService,
         private readonly ?NotificationChannelInterface $emailChannel = null,
         private readonly ?NotificationChannelInterface $telegramChannel = null,
+        private readonly ?NotificationChannelInterface $smsChannel = null,
     ) {}
 
     /**
@@ -161,7 +162,12 @@ final class NotificationService
      */
     private function dispatch(string $channelType, string $to, string $message, array $ctx, int $bookingId, string $event): void
     {
-        $channel = $channelType === 'email' ? $this->emailChannel : $this->telegramChannel;
+        $channel = match ($channelType) {
+            'email'    => $this->emailChannel,
+            'telegram' => $this->telegramChannel,
+            'sms'      => $this->smsChannel,
+            default    => null,
+        };
 
         if ($channel === null || !$channel->supports()) {
             $this->log($bookingId, $channelType, $event, 'skipped', 'no_channel');

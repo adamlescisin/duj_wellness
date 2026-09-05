@@ -7,6 +7,7 @@ namespace Duj\Wellness\Rest;
 use Duj\Wellness\Domain\BookingRequest;
 use Duj\Wellness\Domain\BookingService;
 use Duj\Wellness\Domain\TierResolver;
+use Duj\Wellness\Payment\QrPaymentGenerator;
 use Duj\Wellness\Payment\StripeGatewayFactory;
 use Duj\Wellness\Payment\StripeGatewayInterface;
 use Duj\Wellness\Repository\BookingRepositoryInterface;
@@ -18,7 +19,7 @@ final class BookingsController
 {
     public const NAMESPACE = 'duj/v1';
 
-    private const ALLOWED_PAYMENT_METHODS = ['stripe_card', 'qr_checkout'];
+    private const ALLOWED_PAYMENT_METHODS = ['stripe_card', 'qr_checkout', 'bank_transfer'];
 
     public function __construct(
         private readonly BookingService $bookingService,
@@ -140,6 +141,11 @@ final class BookingsController
             }
         }
 
+        // Bankovní převod — nastav prodlouženou dobu rezervace a vrať QR data
+        if ($paymentMethod === 'bank_transfer') {
+            $responseData['payment'] = $this->createBankTransferPayment($result->bookingId, $result->reference);
+        }
+
         return new \WP_REST_Response($responseData, 201);
     }
 
@@ -213,6 +219,50 @@ final class BookingsController
         }
 
         return [];
+    }
+
+    private function createBankTransferPayment(int $bookingId, string $reference): array
+    {
+        if ($this->settings === null || $this->bookingRepo === null) {
+            return ['provider' => 'bank_transfer'];
+        }
+
+        $holdHours  = max(1, (int) $this->settings->get('qr_bank_hold_hours', 48));
+        $expiresAt  = (new \DateTimeImmutable('now', new \DateTimeZone('Europe/Prague')))
+            ->modify("+{$holdHours} hours")
+            ->format('Y-m-d H:i:s');
+
+        $this->bookingRepo->update($bookingId, [
+            'hold_expires_at'  => $expiresAt,
+            'payment_provider' => 'bank_transfer',
+        ]);
+
+        $iban   = $this->settings->bankAccountIban();
+        $number = $this->settings->bankAccountNumber();
+
+        $booking = $this->bookingRepo->findById($bookingId);
+        $qrData  = [];
+        if ($booking !== null && ($iban !== '' || $number !== '')) {
+            $ibanForQr = $iban !== '' ? $iban : '';
+            if ($ibanForQr !== '') {
+                $spd = (new QrPaymentGenerator())->generate(
+                    $ibanForQr,
+                    $booking->amountMinor,
+                    $reference,
+                    'Wellness rezervace ' . $reference,
+                );
+                $qrData['spd'] = $spd;
+            }
+        }
+
+        return array_merge([
+            'provider'         => 'bank_transfer',
+            'iban'             => $iban,
+            'account_number'   => $number,
+            'variable_symbol'  => preg_replace('/[^0-9]/', '', $reference),
+            'hold_expires_at'  => $expiresAt,
+            'hold_hours'       => $holdHours,
+        ], $qrData);
     }
 
     private function createArgs(): array

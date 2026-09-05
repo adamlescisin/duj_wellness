@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Duj\Wellness\Admin;
 
 use Duj\Wellness\Support\Settings;
+use Duj\Wellness\Admin\StatsPage;
 
 /**
  * Registruje admin menu a enqueue admin assetů.
@@ -37,6 +38,7 @@ final class Menu
         add_submenu_page('duj-wellness', __('E-maily', 'duj-wellness'),    __('E-maily', 'duj-wellness'),    'duj_manage_bookings', 'duj-wellness-emails',      [EmailsPage::class,        'render']);
         add_submenu_page('duj-wellness', __('Notifikace', 'duj-wellness'), __('Notifikace', 'duj-wellness'), 'duj_manage_bookings', 'duj-wellness-notif',       [NotificationsPage::class, 'render']);
         add_submenu_page('duj-wellness', __('Nastavení', 'duj-wellness'),  __('Nastavení', 'duj-wellness'),  'duj_manage_bookings', 'duj-wellness-settings',    [SettingsPage::class,      'render']);
+        add_submenu_page('duj-wellness', __('Statistiky', 'duj-wellness'), __('Statistiky', 'duj-wellness'), 'duj_manage_bookings', 'duj-wellness-stats',       [StatsPage::class,         'render']);
     }
 
     public function enqueueAssets(string $hook): void
@@ -50,6 +52,7 @@ final class Menu
             'wellness_page_duj-wellness-emails',
             'wellness_page_duj-wellness-notif',
             'wellness_page_duj-wellness-settings',
+            'wellness_page_duj-wellness-stats',
         ];
 
         if (!in_array($hook, $dujPages, true)) {

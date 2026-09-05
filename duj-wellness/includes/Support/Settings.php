@@ -313,6 +313,30 @@ final class Settings implements SettingsInterface
         );
     }
 
+    // ── SMS ───────────────────────────────────────────────────────────────────
+
+    public function smsEnabled(): bool
+    {
+        return (bool) $this->get('sms_enabled', false);
+    }
+
+    public function smsGatewayUrl(): string
+    {
+        return (string) $this->get('sms_gateway_url', '');
+    }
+
+    public function smsApiKey(): string
+    {
+        return defined('DUJ_SMS_API_KEY')
+            ? DUJ_SMS_API_KEY
+            : (string) $this->get('sms_api_key', '');
+    }
+
+    public function smsSender(): string
+    {
+        return (string) $this->get('sms_sender', '');
+    }
+
     // ── Ladicí režim ─────────────────────────────────────────────────────────
 
     public function debugMode(): bool
