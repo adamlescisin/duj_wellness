@@ -11,7 +11,7 @@ use Duj\Wellness\Support\Settings;
  * Hlavní orchestrátor dostupnosti.
  * Implementuje pseudokód getAvailability() ze spec § 5.2.
  */
-final class AvailabilityService
+final class AvailabilityService implements AvailabilityServiceInterface
 {
     public function __construct(
         private readonly ScheduleResolver $scheduleResolver,

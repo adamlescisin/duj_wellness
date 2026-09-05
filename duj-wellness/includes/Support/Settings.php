@@ -8,7 +8,7 @@ namespace Duj\Wellness\Support;
  * Typovaná třída nastavení pluginu.
  * Nastavení se ukládají jako jeden serializovaný option 'duj_settings'.
  */
-final class Settings
+final class Settings implements SettingsInterface
 {
     private const OPTION_KEY = 'duj_settings';
 

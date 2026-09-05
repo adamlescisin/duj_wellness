@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Duj\Wellness;
 
+use Duj\Wellness\Cron\ExpireHoldsJob;
 use Duj\Wellness\Domain\AccessCodeService;
 use Duj\Wellness\Domain\AvailabilityService;
+use Duj\Wellness\Domain\BookingService;
 use Duj\Wellness\Domain\CutoffPolicy;
 use Duj\Wellness\Domain\PricingService;
 use Duj\Wellness\Domain\ScheduleResolver;
@@ -14,10 +16,16 @@ use Duj\Wellness\Migrations\Migration001Initial;
 use Duj\Wellness\Migrations\MigrationRunner;
 use Duj\Wellness\Repository\AccessCodeRepository;
 use Duj\Wellness\Repository\AccommodationRepository;
+use Duj\Wellness\Repository\BookingItemRepository;
+use Duj\Wellness\Repository\BookingRepository;
+use Duj\Wellness\Repository\DayLockRepository;
+use Duj\Wellness\Repository\DayLockRepositoryInterface;
 use Duj\Wellness\Repository\PriceRepository;
+use Duj\Wellness\Repository\ResourceRepository;
 use Duj\Wellness\Repository\ScheduleRepository;
 use Duj\Wellness\Rest\AccessCodeController;
 use Duj\Wellness\Rest\AvailabilityController;
+use Duj\Wellness\Rest\BookingsController;
 use Duj\Wellness\Support\RateLimiter;
 use Duj\Wellness\Support\Settings;
 
@@ -28,9 +36,7 @@ final class Plugin
 {
     private static ?self $instance = null;
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     public static function instance(): self
     {
@@ -68,6 +74,8 @@ final class Plugin
     {
         add_action('admin_menu', [$this, 'registerAdminMenu']);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
+        add_action('init', [$this, 'registerCronSchedules']);
+        add_action(ExpireHoldsJob::HOOK, [$this, 'runExpireHolds']);
     }
 
     public function registerAdminMenu(): void
@@ -89,26 +97,74 @@ final class Plugin
         );
     }
 
+    public function registerCronSchedules(): void
+    {
+        add_filter('cron_schedules', static function (array $schedules): array {
+            if (!isset($schedules['duj_every_minute'])) {
+                $schedules['duj_every_minute'] = [
+                    'interval' => 60,
+                    'display'  => __('Každou minutu (duj-wellness)', 'duj-wellness'),
+                ];
+            }
+            return $schedules;
+        });
+
+        ExpireHoldsJob::schedule();
+    }
+
+    public function runExpireHolds(): void
+    {
+        global $wpdb;
+        $bookingSvc = $this->buildBookingService($wpdb);
+        (new ExpireHoldsJob($bookingSvc))->run();
+    }
+
     public function registerRestRoutes(): void
     {
         global $wpdb;
 
-        $settings    = Settings::instance();
-        $schedRepo   = new ScheduleRepository($wpdb);
-        $accomRepo   = new AccommodationRepository($wpdb);
-        $priceRepo   = new PriceRepository($wpdb);
-        $codeRepo    = new AccessCodeRepository($wpdb);
+        $settings       = Settings::instance();
+        $schedRepo      = new ScheduleRepository($wpdb);
+        $accomRepo      = new AccommodationRepository($wpdb);
+        $priceRepo      = new PriceRepository($wpdb);
+        $codeRepo       = new AccessCodeRepository($wpdb);
 
-        $schedResolver = new ScheduleResolver($schedRepo, $accomRepo);
+        $schedResolver  = new ScheduleResolver($schedRepo, $accomRepo);
         $pricingService = new PricingService($priceRepo);
-        $cutoffPolicy  = new CutoffPolicy($settings);
-        $tierResolver  = new TierResolver($priceRepo, $codeRepo);
+        $cutoffPolicy   = CutoffPolicy::fromSettings($settings);
+        $tierResolver   = new TierResolver($priceRepo, $codeRepo);
 
         $availSvc = new AvailabilityService($schedResolver, $pricingService, $cutoffPolicy, $settings);
         $codeSvc  = new AccessCodeService($tierResolver);
 
         (new AvailabilityController($availSvc, $tierResolver, $settings))->register();
         (new AccessCodeController($codeSvc, new RateLimiter()))->register();
+
+        $bookingSvc = $this->buildBookingService($wpdb);
+        (new BookingsController($bookingSvc, $tierResolver, new RateLimiter(maxAttempts: 20)))->register();
+    }
+
+    private function buildBookingService(\wpdb $wpdb): BookingService
+    {
+        $settings       = Settings::instance();
+        $priceRepo      = new PriceRepository($wpdb);
+        $schedRepo      = new ScheduleRepository($wpdb);
+        $accomRepo      = new AccommodationRepository($wpdb);
+        $pricingService = new PricingService($priceRepo);
+        $cutoffPolicy   = CutoffPolicy::fromSettings($settings);
+        $schedResolver  = new ScheduleResolver($schedRepo, $accomRepo);
+
+        return new BookingService(
+            bookingRepo:         new BookingRepository($wpdb),
+            itemRepo:            new BookingItemRepository($wpdb),
+            dayLockRepo:         new DayLockRepository($wpdb),
+            priceRepo:           $priceRepo,
+            resourceRepo:        new ResourceRepository($wpdb),
+            availabilityService: new AvailabilityService($schedResolver, $pricingService, $cutoffPolicy, $settings),
+            pricingService:      $pricingService,
+            settings:            $settings,
+            wpdb:                $wpdb,
+        );
     }
 
     public function settings(): Settings

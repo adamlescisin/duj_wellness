@@ -1,0 +1,190 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Duj\Wellness\Rest;
+
+use Duj\Wellness\Domain\BookingRequest;
+use Duj\Wellness\Domain\BookingService;
+use Duj\Wellness\Domain\TierResolver;
+use Duj\Wellness\Support\Dates;
+use Duj\Wellness\Support\RateLimiter;
+
+final class BookingsController
+{
+    public const NAMESPACE = 'duj/v1';
+
+    private const ALLOWED_PAYMENT_METHODS = ['stripe_card', 'qr_checkout'];
+
+    public function __construct(
+        private readonly BookingService $bookingService,
+        private readonly TierResolver $tierResolver,
+        private readonly RateLimiter $rateLimiter,
+    ) {}
+
+    public function register(): void
+    {
+        register_rest_route(self::NAMESPACE, '/bookings', [
+            'methods'             => 'POST',
+            'callback'            => [$this, 'create'],
+            'permission_callback' => '__return_true',
+            'args'                => $this->createArgs(),
+        ]);
+    }
+
+    public function create(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $ip = $this->getClientIp($request);
+
+        if (!$this->rateLimiter->check('bookings/create', $ip)) {
+            return new \WP_REST_Response(
+                ['code' => 'rate_limited', 'message' => __('Příliš mnoho požadavků. Zkuste to znovu za chvíli.', 'duj-wellness')],
+                429
+            );
+        }
+
+        $date          = (string) $request->get_param('booking_date');
+        $slotFrom      = (string) $request->get_param('slot_from');
+        $comboKey      = (string) $request->get_param('combo_key');
+        $email         = (string) $request->get_param('customer_email');
+        $phone         = (string) $request->get_param('customer_phone');
+        $name          = $request->get_param('customer_name');
+        $note          = $request->get_param('customer_note');
+        $guests        = $request->get_param('guests');
+        $paymentMethod = (string) $request->get_param('payment_method');
+        $accessCode    = $request->get_param('code') ?: null;
+
+        if (!in_array($paymentMethod, self::ALLOWED_PAYMENT_METHODS, true)) {
+            return new \WP_REST_Response(
+                ['code' => 'invalid_payment_method', 'message' => __('Neplatná platební metoda.', 'duj-wellness')],
+                400
+            );
+        }
+
+        // Rozlišení cenové hladiny z kódu
+        $resolution = $this->tierResolver->resolve($accessCode, $date);
+        if ($resolution->invalidCode) {
+            return new \WP_REST_Response(
+                ['code' => 'invalid_code', 'message' => __('Kód neplatí.', 'duj-wellness')],
+                400
+            );
+        }
+
+        // IP pro GDPR consent
+        $ipBin = null;
+        if ($ip !== '0.0.0.0') {
+            $bin = inet_pton($ip);
+            $ipBin = $bin !== false ? $bin : null;
+        }
+
+        $req = new BookingRequest(
+            bookingDate:   $date,
+            slotFrom:      $slotFrom,
+            comboKey:      $comboKey,
+            customerEmail: $email,
+            customerPhone: $phone,
+            customerName:  is_string($name) ? $name : null,
+            customerNote:  is_string($note) ? $note : null,
+            guests:        is_numeric($guests) ? (int) $guests : null,
+            paymentMethod: $paymentMethod,
+            tierSlug:      $resolution->tier->slug,
+            validCode:     $resolution->validCode,
+            source:        'web',
+            locale:        'cs_CZ',
+            consentIpBin:  $ipBin,
+        );
+
+        $result = $this->bookingService->create($req);
+
+        if (!$result->success) {
+            $httpCode = match ($result->errorCode) {
+                'slot_taken'            => 409,
+                'invalid_combo',
+                'invalid_tier',
+                'price_not_found',
+                'resource_not_found',
+                'slot_not_found'        => 400,
+                default                 => 500,
+            };
+
+            return new \WP_REST_Response(
+                ['code' => $result->errorCode, 'message' => $result->errorMessage],
+                $httpCode
+            );
+        }
+
+        return new \WP_REST_Response([
+            'booking_id' => $result->bookingId,
+            'uuid'       => $result->uuid,
+            'reference'  => $result->reference,
+            'status'     => 'pending_payment',
+        ], 201);
+    }
+
+    private function createArgs(): array
+    {
+        return [
+            'booking_date' => [
+                'required'          => true,
+                'validate_callback' => fn($v) => Dates::isValidDate((string) $v),
+                'sanitize_callback' => 'sanitize_text_field',
+            ],
+            'slot_from' => [
+                'required'          => true,
+                'validate_callback' => fn($v) => (bool) preg_match('/^\d{2}:\d{2}(:\d{2})?$/', (string) $v),
+                'sanitize_callback' => 'sanitize_text_field',
+            ],
+            'combo_key' => [
+                'required'          => true,
+                'sanitize_callback' => 'sanitize_text_field',
+            ],
+            'customer_email' => [
+                'required'          => true,
+                'validate_callback' => fn($v) => is_email($v),
+                'sanitize_callback' => 'sanitize_email',
+            ],
+            'customer_phone' => [
+                'required'          => true,
+                'validate_callback' => fn($v) => strlen(trim((string) $v)) >= 9,
+                'sanitize_callback' => 'sanitize_text_field',
+            ],
+            'customer_name' => [
+                'required'          => false,
+                'sanitize_callback' => 'sanitize_text_field',
+            ],
+            'customer_note' => [
+                'required'          => false,
+                'sanitize_callback' => 'sanitize_textarea_field',
+            ],
+            'guests' => [
+                'required'          => false,
+                'validate_callback' => fn($v) => $v === null || (is_numeric($v) && (int) $v > 0),
+                'sanitize_callback' => fn($v) => $v !== null ? (int) $v : null,
+            ],
+            'payment_method' => [
+                'required'          => true,
+                'sanitize_callback' => 'sanitize_text_field',
+            ],
+            'code' => [
+                'required'          => false,
+                'sanitize_callback' => 'sanitize_text_field',
+            ],
+        ];
+    }
+
+    private function getClientIp(\WP_REST_Request $request): string
+    {
+        $server = $request->get_server_params();
+
+        foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $header) {
+            if (!empty($server[$header])) {
+                $ip = trim(explode(',', $server[$header])[0]);
+                if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                    return $ip;
+                }
+            }
+        }
+
+        return '0.0.0.0';
+    }
+}
