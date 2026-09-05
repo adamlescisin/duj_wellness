@@ -7,8 +7,12 @@ namespace Duj\Wellness\Rest;
 use Duj\Wellness\Domain\BookingRequest;
 use Duj\Wellness\Domain\BookingService;
 use Duj\Wellness\Domain\TierResolver;
+use Duj\Wellness\Payment\StripeGatewayFactory;
+use Duj\Wellness\Payment\StripeGatewayInterface;
+use Duj\Wellness\Repository\BookingRepositoryInterface;
 use Duj\Wellness\Support\Dates;
 use Duj\Wellness\Support\RateLimiter;
+use Duj\Wellness\Support\SettingsInterface;
 
 final class BookingsController
 {
@@ -20,6 +24,9 @@ final class BookingsController
         private readonly BookingService $bookingService,
         private readonly TierResolver $tierResolver,
         private readonly RateLimiter $rateLimiter,
+        private readonly ?StripeGatewayInterface $stripeGateway = null,
+        private readonly ?SettingsInterface $settings = null,
+        private readonly ?BookingRepositoryInterface $bookingRepo = null,
     ) {}
 
     public function register(): void
@@ -113,12 +120,99 @@ final class BookingsController
             );
         }
 
-        return new \WP_REST_Response([
+        $responseData = [
             'booking_id' => $result->bookingId,
             'uuid'       => $result->uuid,
             'reference'  => $result->reference,
             'status'     => 'pending_payment',
-        ], 201);
+        ];
+
+        // Vytvoř Stripe PaymentIntent / Checkout Session
+        if (in_array($paymentMethod, ['stripe_card', 'qr_checkout'], true) && $this->stripeGateway !== null) {
+            $booking = $this->bookingRepo?->findById($result->bookingId);
+            if ($booking !== null) {
+                $responseData['payment'] = $this->createStripePayment(
+                    $paymentMethod,
+                    $booking,
+                    $result->uuid,
+                    $result->reference,
+                );
+            }
+        }
+
+        return new \WP_REST_Response($responseData, 201);
+    }
+
+    private function createStripePayment(
+        string $paymentMethod,
+        \Duj\Wellness\Repository\BookingRow $booking,
+        string $uuid,
+        string $reference,
+    ): array {
+        $publishableKey = $this->settings !== null
+            ? StripeGatewayFactory::resolvePublishableKey($this->settings)
+            : '';
+
+        if ($paymentMethod === 'stripe_card') {
+            try {
+                $pi = $this->stripeGateway->createPaymentIntent(
+                    $booking->amountMinor,
+                    $booking->currency,
+                    $uuid,
+                    $reference,
+                );
+
+                // Ulož intent_id do DB
+                $this->bookingRepo?->update($booking->id, ['payment_intent_id' => $pi['intent_id'], 'payment_provider' => 'stripe']);
+
+                return [
+                    'provider'        => 'stripe',
+                    'client_secret'   => $pi['client_secret'],
+                    'publishable_key' => $publishableKey,
+                ];
+            } catch (\RuntimeException $e) {
+                error_log('[duj-wellness] BookingsController: createPaymentIntent selhal: ' . $e->getMessage());
+                return ['provider' => 'stripe', 'error' => 'payment_init_failed'];
+            }
+        }
+
+        // qr_checkout
+        if ($paymentMethod === 'qr_checkout') {
+            $siteUrl    = function_exists('get_site_url') ? get_site_url() : 'https://domecekujosefa.cz';
+            $successUrl = $siteUrl . '/rezervace/dokonceni/?uuid=' . $uuid;
+            $cancelUrl  = $siteUrl . '/rezervace/?cancelled=1';
+
+            try {
+                $session = $this->stripeGateway->createCheckoutSession(
+                    $booking->amountMinor,
+                    $booking->currency,
+                    $uuid,
+                    $reference,
+                    $successUrl,
+                    $cancelUrl,
+                    $booking->holdExpiresAt ?? (new \DateTimeImmutable('+30 minutes', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s'),
+                );
+
+                // Ulož intent_id pokud je k dispozici
+                if ($session['intent_id'] !== '') {
+                    $this->bookingRepo?->update($booking->id, [
+                        'payment_intent_id' => $session['intent_id'],
+                        'payment_provider'  => 'stripe',
+                    ]);
+                }
+
+                return [
+                    'provider'    => 'stripe',
+                    'session_url' => $session['session_url'],
+                    'session_id'  => $session['session_id'],
+                ];
+            } catch (\RuntimeException $e) {
+                error_log('[duj-wellness] BookingsController: createCheckoutSession selhal: ' . $e->getMessage());
+                return ['provider' => 'stripe', 'error' => 'payment_init_failed'];
+            }
+        }
+
+        return [];
     }
 
     private function createArgs(): array

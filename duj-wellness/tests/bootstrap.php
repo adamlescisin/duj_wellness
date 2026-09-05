@@ -54,3 +54,28 @@ if (!defined('OBJECT')) {
 if (!defined('ARRAY_A')) {
     define('ARRAY_A', 'ARRAY_A');
 }
+if (!defined('DAY_IN_SECONDS')) {
+    define('DAY_IN_SECONDS', 86400);
+}
+
+// WP transient stubs — in-memory, for webhook idempotency tests
+if (!function_exists('get_transient')) {
+    function get_transient(string $key): mixed
+    {
+        return $GLOBALS['_duj_transients'][$key] ?? false;
+    }
+}
+if (!function_exists('set_transient')) {
+    function set_transient(string $key, mixed $value, int $expiration = 0): bool
+    {
+        $GLOBALS['_duj_transients'][$key] = $value;
+        return true;
+    }
+}
+if (!function_exists('delete_transient')) {
+    function delete_transient(string $key): bool
+    {
+        unset($GLOBALS['_duj_transients'][$key]);
+        return true;
+    }
+}

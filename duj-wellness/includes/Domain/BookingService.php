@@ -22,7 +22,7 @@ use Duj\Wellness\Support\SettingsInterface;
  * - Interval overlap check probíhá pod SELECT FOR UPDATE na duj_day_locks.
  * - Zámky se berou v pořadí resource_id ASC (prevence deadlocku).
  */
-final class BookingService
+final class BookingService implements BookingServiceInterface
 {
     public function __construct(
         private readonly BookingRepositoryInterface $bookingRepo,

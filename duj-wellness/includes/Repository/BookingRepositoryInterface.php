@@ -9,6 +9,7 @@ interface BookingRepositoryInterface
     public function findById(int $id): ?BookingRow;
     public function findByUuid(string $uuid): ?BookingRow;
     public function findByReference(string $reference): ?BookingRow;
+    public function findByPaymentIntentId(string $intentId): ?BookingRow;
 
     /** @return BookingRow[] */
     public function findExpiredHolds(\DateTimeImmutable $before): array;

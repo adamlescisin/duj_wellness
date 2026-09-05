@@ -38,6 +38,16 @@ final class BookingRepository implements BookingRepositoryInterface
         return $row ? $this->hydrate($row) : null;
     }
 
+    public function findByPaymentIntentId(string $intentId): ?BookingRow
+    {
+        $table = $this->wpdb->prefix . 'duj_bookings';
+        $row = $this->wpdb->get_row(
+            $this->wpdb->prepare("SELECT * FROM `{$table}` WHERE payment_intent_id = %s LIMIT 1", $intentId),
+            ARRAY_A
+        );
+        return $row ? $this->hydrate($row) : null;
+    }
+
     /** @return BookingRow[] */
     public function findExpiredHolds(\DateTimeImmutable $before): array
     {

@@ -22,14 +22,18 @@ use Duj\Wellness\Repository\AccessCodeRepository;
 use Duj\Wellness\Repository\AccommodationRepository;
 use Duj\Wellness\Repository\BookingItemRepository;
 use Duj\Wellness\Repository\BookingRepository;
+use Duj\Wellness\Repository\BookingRepositoryInterface;
 use Duj\Wellness\Repository\DayLockRepository;
 use Duj\Wellness\Repository\DayLockRepositoryInterface;
 use Duj\Wellness\Repository\PriceRepository;
 use Duj\Wellness\Repository\ResourceRepository;
 use Duj\Wellness\Repository\ScheduleRepository;
+use Duj\Wellness\Payment\StripeGatewayFactory;
+use Duj\Wellness\Payment\StripeWebhookHandler;
 use Duj\Wellness\Rest\AccessCodeController;
 use Duj\Wellness\Rest\AvailabilityController;
 use Duj\Wellness\Rest\BookingsController;
+use Duj\Wellness\Rest\WebhooksController;
 use Duj\Wellness\Support\RateLimiter;
 use Duj\Wellness\Support\Settings;
 
@@ -146,8 +150,23 @@ final class Plugin
         (new AvailabilityController($availSvc, $tierResolver, $settings))->register();
         (new AccessCodeController($codeSvc, new RateLimiter()))->register();
 
-        $bookingSvc = $this->buildBookingService($wpdb);
-        (new BookingsController($bookingSvc, $tierResolver, new RateLimiter(maxAttempts: 20)))->register();
+        $bookingSvc    = $this->buildBookingService($wpdb);
+        $bookingRepo   = new BookingRepository($wpdb);
+        $stripeGateway = StripeGatewayFactory::create($settings);
+
+        (new BookingsController(
+            $bookingSvc,
+            $tierResolver,
+            new RateLimiter(maxAttempts: 20),
+            $stripeGateway,
+            $settings,
+            $bookingRepo,
+        ))->register();
+
+        (new WebhooksController(
+            new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc),
+            $settings,
+        ))->register();
     }
 
     private function buildBookingService(\wpdb $wpdb): BookingService
