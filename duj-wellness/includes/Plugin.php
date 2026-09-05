@@ -8,6 +8,7 @@ use Duj\Wellness\Accommodation\AccommodationClassifier;
 use Duj\Wellness\Accommodation\AccommodationSyncService;
 use Duj\Wellness\Accommodation\IcsParser;
 use Duj\Wellness\Cron\ExpireHoldsJob;
+use Duj\Wellness\Cron\RetentionCleanupJob;
 use Duj\Wellness\Cron\SyncAccommodationJob;
 use Duj\Wellness\Domain\AccessCodeService;
 use Duj\Wellness\Domain\AvailabilityService;
@@ -17,6 +18,7 @@ use Duj\Wellness\Domain\PricingService;
 use Duj\Wellness\Domain\ScheduleResolver;
 use Duj\Wellness\Domain\TierResolver;
 use Duj\Wellness\Migrations\Migration001Initial;
+use Duj\Wellness\Migrations\Migration002ScheduleOverrideModes;
 use Duj\Wellness\Migrations\MigrationRunner;
 use Duj\Wellness\Repository\AccessCodeRepository;
 use Duj\Wellness\Repository\AccommodationRepository;
@@ -34,6 +36,8 @@ use Duj\Wellness\Notification\NotificationService;
 use Duj\Wellness\Notification\TemplateRenderer;
 use Duj\Wellness\Admin\Menu;
 use Duj\Wellness\Frontend\Assets;
+use Duj\Wellness\Gdpr\GdprEraser;
+use Duj\Wellness\Gdpr\GdprExporter;
 use Duj\Wellness\Frontend\Shortcode;
 use Duj\Wellness\Payment\StripeGatewayFactory;
 use Duj\Wellness\Payment\StripeWebhookHandler;
@@ -90,6 +94,7 @@ final class Plugin
     {
         $runner = new MigrationRunner();
         $runner->register(new Migration001Initial());
+        $runner->register(new Migration002ScheduleOverrideModes());
         $runner->run();
     }
 
@@ -99,8 +104,16 @@ final class Plugin
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
         add_action('init', [$this, 'registerCronSchedules']);
         add_action('init', [$this, 'registerFrontend']);
+        add_action('init', [$this, 'registerGdpr']);
         add_action(ExpireHoldsJob::HOOK, [$this, 'runExpireHolds']);
         add_action(SyncAccommodationJob::HOOK, [$this, 'runSyncAccommodation']);
+        add_action(RetentionCleanupJob::HOOK, [$this, 'runRetentionCleanup']);
+    }
+
+    public function registerGdpr(): void
+    {
+        (new GdprExporter())->register();
+        (new GdprEraser())->register();
     }
 
     public function registerFrontend(): void
@@ -130,6 +143,7 @@ final class Plugin
 
         ExpireHoldsJob::schedule();
         SyncAccommodationJob::schedule();
+        RetentionCleanupJob::schedule();
     }
 
     public function runExpireHolds(): void
@@ -218,6 +232,11 @@ final class Plugin
             settings:            $settings,
             wpdb:                $wpdb,
         );
+    }
+
+    public function runRetentionCleanup(): void
+    {
+        (new RetentionCleanupJob())->run();
     }
 
     public function runSyncAccommodation(): void

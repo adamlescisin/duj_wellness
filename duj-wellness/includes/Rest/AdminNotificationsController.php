@@ -85,7 +85,7 @@ final class AdminNotificationsController
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT n.id, n.booking_id, n.channel, n.type, n.status, n.error, n.created_at,
+                "SELECT n.id, n.booking_id, n.channel, n.template_key, n.status, n.error, n.created_at,
                         b.reference
                  FROM `{$notifTable}` n
                  LEFT JOIN `{$bookingTable}` b ON b.id = n.booking_id
