@@ -6,6 +6,7 @@ namespace Duj\Wellness\Support;
 
 interface SettingsInterface
 {
+    public function get(string $key, mixed $default = null): mixed;
     public function bufferMinutes(): int;
     public function defaultSlotMinutes(): int;
     public function holdMinutes(): int;

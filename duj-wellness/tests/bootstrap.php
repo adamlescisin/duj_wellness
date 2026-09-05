@@ -79,3 +79,35 @@ if (!function_exists('delete_transient')) {
         return true;
     }
 }
+
+if (!function_exists('esc_html')) {
+    function esc_html(string $text): string { return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+}
+if (!function_exists('esc_attr')) {
+    function esc_attr(string $text): string { return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+}
+if (!function_exists('esc_url')) {
+    function esc_url(string $url): string { return htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+}
+if (!function_exists('home_url')) {
+    function home_url(string $path = ''): string { return 'https://example.com' . $path; }
+}
+if (!function_exists('get_option')) {
+    function get_option(string $option, mixed $default = false): mixed { return $default; }
+}
+if (!function_exists('sanitize_file_name')) {
+    function sanitize_file_name(string $filename): string { return preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename) ?? $filename; }
+}
+if (!function_exists('wp_mail')) {
+    function wp_mail(string $to, string $subject, string $message, array $headers = [], array $attachments = []): bool { return true; }
+}
+if (!function_exists('add_query_arg')) {
+    function add_query_arg(array $args, string $url): string {
+        $query = http_build_query($args);
+        $sep   = str_contains($url, '?') ? '&' : '?';
+        return $url . $sep . $query;
+    }
+}
+if (!defined('HOUR_IN_SECONDS')) {
+    define('HOUR_IN_SECONDS', 3600);
+}

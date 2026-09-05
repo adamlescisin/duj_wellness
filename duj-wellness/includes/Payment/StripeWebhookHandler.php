@@ -6,6 +6,7 @@ namespace Duj\Wellness\Payment;
 
 use Duj\Wellness\Domain\BookingServiceInterface;
 use Duj\Wellness\Domain\BookingStatus;
+use Duj\Wellness\Notification\NotificationService;
 use Duj\Wellness\Repository\BookingRepositoryInterface;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Event;
@@ -33,6 +34,7 @@ final class StripeWebhookHandler
         private readonly StripeGatewayInterface $gateway,
         private readonly BookingRepositoryInterface $bookingRepo,
         private readonly BookingServiceInterface $bookingService,
+        private readonly ?NotificationService $notificationService = null,
     ) {}
 
     /**
@@ -104,11 +106,16 @@ final class StripeWebhookHandler
                 'payment_provider' => 'stripe',
                 'payment_status'   => 'authorized',
             ]);
+
+            if ($this->notificationService !== null) {
+                $fresh = $this->bookingRepo->findById($booking->id);
+                if ($fresh !== null) {
+                    $this->notificationService->sendAwaitingConfirmation($fresh);
+                }
+            }
         } catch (\InvalidArgumentException) {
             // Přechod není povolen (např. booking už není pending_payment) — ignoruj
         }
-
-        // Notifikace jsou odeslány asynchronně v BookingService nebo Action Scheduler
     }
 
     /** PaymentIntent succeeded (capture proběhl nebo automatic capture). */
@@ -211,6 +218,13 @@ final class StripeWebhookHandler
                 'payment_status'   => 'authorized',
                 'payment_intent_id' => $intentId,
             ]);
+
+            if ($this->notificationService !== null) {
+                $fresh = $this->bookingRepo->findById($booking->id);
+                if ($fresh !== null) {
+                    $this->notificationService->sendAwaitingConfirmation($fresh);
+                }
+            }
         } catch (\InvalidArgumentException) {
             // Přechod není povolen — ignoruj
         }

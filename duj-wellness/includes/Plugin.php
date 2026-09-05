@@ -28,9 +28,16 @@ use Duj\Wellness\Repository\DayLockRepositoryInterface;
 use Duj\Wellness\Repository\PriceRepository;
 use Duj\Wellness\Repository\ResourceRepository;
 use Duj\Wellness\Repository\ScheduleRepository;
+use Duj\Wellness\Notification\ActionTokenService;
+use Duj\Wellness\Notification\Channels\EmailChannel;
+use Duj\Wellness\Notification\Channels\TelegramChannel;
+use Duj\Wellness\Notification\IcsGenerator;
+use Duj\Wellness\Notification\NotificationService;
+use Duj\Wellness\Notification\TemplateRenderer;
 use Duj\Wellness\Payment\StripeGatewayFactory;
 use Duj\Wellness\Payment\StripeWebhookHandler;
 use Duj\Wellness\Rest\AccessCodeController;
+use Duj\Wellness\Rest\ActionController;
 use Duj\Wellness\Rest\AvailabilityController;
 use Duj\Wellness\Rest\BookingsController;
 use Duj\Wellness\Rest\WebhooksController;
@@ -154,6 +161,8 @@ final class Plugin
         $bookingRepo   = new BookingRepository($wpdb);
         $stripeGateway = StripeGatewayFactory::create($settings);
 
+        $notificationSvc = $this->buildNotificationService($wpdb, $settings);
+
         (new BookingsController(
             $bookingSvc,
             $tierResolver,
@@ -164,8 +173,15 @@ final class Plugin
         ))->register();
 
         (new WebhooksController(
-            new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc),
+            new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc, $notificationSvc),
             $settings,
+        ))->register();
+
+        (new ActionController(
+            new ActionTokenService($wpdb),
+            $bookingRepo,
+            $bookingSvc,
+            $notificationSvc,
         ))->register();
     }
 
@@ -195,11 +211,24 @@ final class Plugin
     public function runSyncAccommodation(): void
     {
         $syncSvc = new AccommodationSyncService(
-            new AccommodationRepository(null),
+            new AccommodationRepository(),
             new IcsParser(),
             new AccommodationClassifier(),
         );
         (new SyncAccommodationJob($syncSvc))->run();
+    }
+
+    private function buildNotificationService(\wpdb $wpdb, Settings $settings): NotificationService
+    {
+        return new NotificationService(
+            $wpdb,
+            $settings,
+            new TemplateRenderer(),
+            new IcsGenerator(),
+            new ActionTokenService($wpdb),
+            new EmailChannel($settings),
+            new TelegramChannel($settings),
+        );
     }
 
     public function settings(): Settings
