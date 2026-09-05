@@ -1,0 +1,755 @@
+/* duj-wellness booking widget — scoped under .duj-wellness */
+/* Barvy definovány jako CSS custom properties, přepisovatelné z admin nastavení */
+
+:where(.duj-wellness) {
+  --duj-accent: #2d6a4f;
+  --duj-accent-dark: #1b4332;
+  --duj-accent-contrast: #ffffff;
+  --duj-text: #1a1a1a;
+  --duj-muted: #6b7280;
+  --duj-border: #d1d5db;
+  --duj-surface: #ffffff;
+  --duj-surface-alt: #f9fafb;
+  --duj-radius: 8px;
+  --duj-font: inherit;
+  --duj-shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+
+  /* State colors */
+  --duj-color-available: #d1fae5;
+  --duj-color-available-text: #065f46;
+  --duj-color-partial: #fef3c7;
+  --duj-color-partial-text: #92400e;
+  --duj-color-booked: #fee2e2;
+  --duj-color-booked-text: #991b1b;
+  --duj-color-reserved: #ede9fe;
+  --duj-color-reserved-text: #5b21b6;
+  --duj-color-closed: #f3f4f6;
+  --duj-color-closed-text: #9ca3af;
+
+  font-family: var(--duj-font);
+  color: var(--duj-text);
+  box-sizing: border-box;
+}
+
+:where(.duj-wellness) *,
+:where(.duj-wellness) *::before,
+:where(.duj-wellness) *::after {
+  box-sizing: inherit;
+}
+
+/* Dark theme */
+:where(.duj-wellness[data-theme="dark"]),
+@media (prefers-color-scheme: dark) {
+  :where(.duj-wellness[data-theme="auto"]) {
+    --duj-text: #f3f4f6;
+    --duj-muted: #9ca3af;
+    --duj-border: #374151;
+    --duj-surface: #1f2937;
+    --duj-surface-alt: #111827;
+  }
+}
+
+/* ─── Layout ─── */
+:where(.duj-wellness) {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+:where(.duj-wellness__heading) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem;
+  color: var(--duj-text);
+}
+
+:where(.duj-wellness__app) {
+  position: relative;
+}
+
+/* ─── Skeleton loading ─── */
+:where(.duj-wellness__skeleton) {
+  background: linear-gradient(90deg, var(--duj-surface-alt) 25%, var(--duj-border) 50%, var(--duj-surface-alt) 75%);
+  background-size: 200% 100%;
+  animation: duj-skeleton 1.5s infinite;
+  border-radius: var(--duj-radius);
+  height: 400px;
+}
+
+:where(.duj-wellness__skeleton:empty:not([aria-hidden="true"])) {
+  display: none;
+}
+
+@keyframes duj-skeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Pricing header ─── */
+:where(.duj-pricing-header) {
+  background: var(--duj-surface-alt);
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+:where(.duj-pricing-tiers) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: var(--duj-muted);
+}
+
+:where(.duj-pricing-tiers strong) {
+  color: var(--duj-text);
+}
+
+:where(.duj-code-toggle) {
+  font-size: 0.8125rem;
+  color: var(--duj-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:where(.duj-code-form) {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+:where(.duj-code-form input) {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  font-size: 0.875rem;
+  background: var(--duj-surface);
+  color: var(--duj-text);
+}
+
+:where(.duj-code-feedback) {
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+}
+
+:where(.duj-code-feedback--ok) { color: var(--duj-accent); }
+:where(.duj-code-feedback--err) { color: #dc2626; }
+
+/* ─── Calendar ─── */
+:where(.duj-calendar) {
+  background: var(--duj-surface);
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  overflow: hidden;
+  box-shadow: var(--duj-shadow);
+}
+
+:where(.duj-calendar__nav) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: var(--duj-accent);
+  color: var(--duj-accent-contrast);
+}
+
+:where(.duj-calendar__nav button) {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+:where(.duj-calendar__nav button:hover) {
+  background: rgba(255,255,255,.15);
+}
+
+:where(.duj-calendar__nav button:disabled) {
+  opacity: .4;
+  cursor: default;
+}
+
+:where(.duj-calendar__title) {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+:where(.duj-calendar__grid) {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+:where(.duj-calendar__weekday) {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--duj-muted);
+  padding: 0.5rem 0;
+  background: var(--duj-surface-alt);
+  border-bottom: 1px solid var(--duj-border);
+}
+
+:where(.duj-calendar__day) {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.875rem;
+  border: 1px solid transparent;
+  position: relative;
+  transition: background .12s, color .12s;
+  min-height: 44px;
+  padding: 2px;
+}
+
+:where(.duj-calendar__day--empty) {
+  cursor: default;
+}
+
+:where(.duj-calendar__day--past) {
+  color: var(--duj-muted);
+  cursor: default;
+  opacity: .5;
+}
+
+:where(.duj-calendar__day--closed) {
+  background: var(--duj-color-closed);
+  color: var(--duj-color-closed-text);
+  cursor: default;
+}
+
+:where(.duj-calendar__day--booked) {
+  background: var(--duj-color-booked);
+  color: var(--duj-color-booked-text);
+  cursor: default;
+}
+
+:where(.duj-calendar__day--reserved) {
+  background: var(--duj-color-reserved);
+  color: var(--duj-color-reserved-text);
+  cursor: default;
+}
+
+:where(.duj-calendar__day--partial) {
+  background: var(--duj-color-partial);
+  color: var(--duj-color-partial-text);
+}
+
+:where(.duj-calendar__day--available) {
+  background: var(--duj-color-available);
+  color: var(--duj-color-available-text);
+  font-weight: 600;
+}
+
+:where(.duj-calendar__day--selected) {
+  outline: 2px solid var(--duj-accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+:where(.duj-calendar__day--available:hover),
+:where(.duj-calendar__day--partial:hover) {
+  filter: brightness(.92);
+}
+
+:where(.duj-calendar__day:focus-visible) {
+  outline: 2px solid var(--duj-accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+:where(.duj-calendar__day-num) {
+  font-weight: inherit;
+  line-height: 1;
+}
+
+:where(.duj-calendar__day-dot) {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .6;
+  margin-top: 2px;
+}
+
+/* Week numbers */
+:where(.duj-calendar__grid--with-weeks) {
+  grid-template-columns: auto repeat(7, 1fr);
+}
+
+:where(.duj-calendar__week-num) {
+  font-size: 0.6875rem;
+  color: var(--duj-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-right: 1px solid var(--duj-border);
+}
+
+/* ─── Slots ─── */
+:where(.duj-slots) {
+  margin-top: 1.25rem;
+}
+
+:where(.duj-slots__title) {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--duj-text);
+}
+
+:where(.duj-slots__grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
+:where(.duj-slot-card) {
+  border: 2px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  background: var(--duj-surface);
+  text-align: left;
+  transition: border-color .12s, background .12s;
+  font-family: inherit;
+  color: var(--duj-text);
+}
+
+:where(.duj-slot-card:hover) {
+  border-color: var(--duj-accent);
+  background: var(--duj-surface-alt);
+}
+
+:where(.duj-slot-card--selected) {
+  border-color: var(--duj-accent);
+  background: color-mix(in srgb, var(--duj-accent) 8%, var(--duj-surface));
+}
+
+:where(.duj-slot-card--unavailable) {
+  opacity: .5;
+  cursor: default;
+  pointer-events: none;
+}
+
+:where(.duj-slot-card__time) {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+:where(.duj-slot-card__label) {
+  font-size: 0.75rem;
+  color: var(--duj-muted);
+  margin-top: 2px;
+}
+
+/* ─── Service cards ─── */
+:where(.duj-services) {
+  margin-top: 1.25rem;
+}
+
+:where(.duj-services__grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+:where(.duj-service-card) {
+  border: 2px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  padding: 1.125rem 1rem;
+  cursor: pointer;
+  background: var(--duj-surface);
+  text-align: left;
+  transition: border-color .12s;
+  font-family: inherit;
+  color: var(--duj-text);
+}
+
+:where(.duj-service-card:hover) {
+  border-color: var(--duj-accent);
+}
+
+:where(.duj-service-card--selected) {
+  border-color: var(--duj-accent);
+  background: color-mix(in srgb, var(--duj-accent) 8%, var(--duj-surface));
+}
+
+:where(.duj-service-card--unavailable) {
+  opacity: .45;
+  cursor: default;
+  pointer-events: none;
+}
+
+:where(.duj-service-card__name) {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.375rem;
+}
+
+:where(.duj-service-card__price) {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--duj-accent);
+}
+
+:where(.duj-service-card__tier-label) {
+  font-size: 0.75rem;
+  color: var(--duj-muted);
+  margin-top: 2px;
+}
+
+:where(.duj-service-card__reason) {
+  font-size: 0.75rem;
+  color: var(--duj-muted);
+  margin-top: 0.375rem;
+}
+
+/* ─── Form ─── */
+:where(.duj-form) {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+:where(.duj-field) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+:where(.duj-field label) {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--duj-text);
+}
+
+:where(.duj-field input),
+:where(.duj-field textarea),
+:where(.duj-field select) {
+  padding: 0.6rem 0.875rem;
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  background: var(--duj-surface);
+  color: var(--duj-text);
+  width: 100%;
+  transition: border-color .12s;
+}
+
+:where(.duj-field input:focus),
+:where(.duj-field textarea:focus),
+:where(.duj-field select:focus) {
+  outline: none;
+  border-color: var(--duj-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--duj-accent) 20%, transparent);
+}
+
+:where(.duj-field input[aria-invalid="true"]),
+:where(.duj-field textarea[aria-invalid="true"]) {
+  border-color: #dc2626;
+}
+
+:where(.duj-field__error) {
+  font-size: 0.8125rem;
+  color: #dc2626;
+  margin-top: 0.1rem;
+}
+
+:where(.duj-consent) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+:where(.duj-consent input[type="checkbox"]) {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--duj-accent);
+  cursor: pointer;
+}
+
+/* ─── Payment ─── */
+:where(.duj-payment) {
+  margin-top: 1.25rem;
+}
+
+:where(.duj-recap) {
+  background: var(--duj-surface-alt);
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.9375rem;
+}
+
+:where(.duj-recap__row) {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.25rem 0;
+}
+
+:where(.duj-recap__row--total) {
+  border-top: 1px solid var(--duj-border);
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  font-weight: 700;
+  font-size: 1.0625rem;
+}
+
+:where(.duj-hold-timer) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--duj-muted);
+  margin-bottom: 1rem;
+}
+
+:where(.duj-hold-timer__time) {
+  font-weight: 700;
+  color: #d97706;
+  font-variant-numeric: tabular-nums;
+}
+
+:where(#duj-stripe-element) {
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  padding: 0.875rem;
+  background: var(--duj-surface);
+  margin-bottom: 1.25rem;
+}
+
+/* ─── Buttons ─── */
+:where(.duj-btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--duj-accent);
+  color: var(--duj-accent-contrast);
+  border: 2px solid transparent;
+  border-radius: var(--duj-radius);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .12s, filter .12s;
+  text-decoration: none;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+:where(.duj-btn:hover) {
+  filter: brightness(.9);
+}
+
+:where(.duj-btn:focus-visible) {
+  outline: 3px solid var(--duj-accent);
+  outline-offset: 2px;
+}
+
+:where(.duj-btn:disabled) {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+:where(.duj-btn--secondary) {
+  background: transparent;
+  color: var(--duj-accent);
+  border-color: var(--duj-accent);
+}
+
+:where(.duj-btn--secondary:hover) {
+  background: color-mix(in srgb, var(--duj-accent) 8%, transparent);
+  filter: none;
+}
+
+:where(.duj-btn--full) {
+  width: 100%;
+}
+
+:where(.duj-btn-row) {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+/* ─── Result ─── */
+:where(.duj-result) {
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+:where(.duj-result__icon) {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+
+:where(.duj-result__title) {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  color: var(--duj-accent);
+}
+
+:where(.duj-result__text) {
+  color: var(--duj-muted);
+  font-size: 0.9375rem;
+}
+
+/* ─── Error / Notice ─── */
+:where(.duj-notice) {
+  border-radius: var(--duj-radius);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+:where(.duj-notice--error) {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+:where(.duj-notice--info) {
+  background: var(--duj-surface-alt);
+  color: var(--duj-muted);
+  border: 1px solid var(--duj-border);
+}
+
+/* ─── Steps / progress ─── */
+:where(.duj-steps) {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+:where(.duj-step) {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--duj-muted);
+  flex-shrink: 0;
+}
+
+:where(.duj-step--active) {
+  color: var(--duj-accent);
+  font-weight: 600;
+}
+
+:where(.duj-step--done) {
+  color: var(--duj-text);
+}
+
+:where(.duj-step__num) {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+:where(.duj-step--done .duj-step__num) {
+  background: var(--duj-text);
+  color: var(--duj-surface);
+  border-color: var(--duj-text);
+}
+
+:where(.duj-step--active .duj-step__num) {
+  background: var(--duj-accent);
+  color: var(--duj-accent-contrast);
+  border-color: var(--duj-accent);
+}
+
+:where(.duj-step__sep) {
+  flex: 1;
+  height: 1px;
+  background: var(--duj-border);
+  min-width: 12px;
+}
+
+/* ─── Availability widget (read-only) ─── */
+:where(.duj-avail-list) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+:where(.duj-avail-item) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--duj-surface);
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+  font-size: 0.9375rem;
+}
+
+:where(.duj-avail-item__date) {
+  font-weight: 600;
+}
+
+:where(.duj-avail-item__slots) {
+  color: var(--duj-muted);
+  font-size: 0.875rem;
+}
+
+/* ─── Responsive ─── */
+@media (min-width: 640px) {
+  :where(.duj-wellness) {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 900px) {
+  :where(.duj-wellness--two-col .duj-wellness__app) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+}

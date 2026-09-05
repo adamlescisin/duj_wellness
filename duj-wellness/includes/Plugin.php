@@ -34,6 +34,8 @@ use Duj\Wellness\Notification\Channels\TelegramChannel;
 use Duj\Wellness\Notification\IcsGenerator;
 use Duj\Wellness\Notification\NotificationService;
 use Duj\Wellness\Notification\TemplateRenderer;
+use Duj\Wellness\Frontend\Assets;
+use Duj\Wellness\Frontend\Shortcode;
 use Duj\Wellness\Payment\StripeGatewayFactory;
 use Duj\Wellness\Payment\StripeWebhookHandler;
 use Duj\Wellness\Rest\AccessCodeController;
@@ -90,8 +92,17 @@ final class Plugin
         add_action('admin_menu', [$this, 'registerAdminMenu']);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
         add_action('init', [$this, 'registerCronSchedules']);
+        add_action('init', [$this, 'registerFrontend']);
         add_action(ExpireHoldsJob::HOOK, [$this, 'runExpireHolds']);
         add_action(SyncAccommodationJob::HOOK, [$this, 'runSyncAccommodation']);
+    }
+
+    public function registerFrontend(): void
+    {
+        $settings = Settings::instance();
+        $assets   = new Assets($settings, DUJ_WELLNESS_URL, DUJ_WELLNESS_VERSION);
+        $assets->register();
+        (new Shortcode($assets))->register();
     }
 
     public function registerAdminMenu(): void
