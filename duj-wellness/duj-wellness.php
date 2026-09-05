@@ -23,7 +23,21 @@ define('DUJ_WELLNESS_DIR', plugin_dir_path(__FILE__));
 define('DUJ_WELLNESS_URL', plugin_dir_url(__FILE__));
 define('DUJ_WELLNESS_BASENAME', plugin_basename(__FILE__));
 
-// Autoloader
+// PSR-4 autoloader pro vlastní namespace — funguje i bez Composeru.
+spl_autoload_register(static function (string $class): void {
+    $prefix = 'Duj\\Wellness\\';
+    if (!str_starts_with($class, $prefix)) {
+        return;
+    }
+    $relative = substr($class, strlen($prefix));
+    $file = DUJ_WELLNESS_DIR . 'includes/' . str_replace('\\', '/', $relative) . '.php';
+    if (file_exists($file)) {
+        require_once $file;
+    }
+});
+
+// Composer autoloader (třetí strany — Stripe, QR-Code, Action Scheduler).
+// Nepovinný pro Fázi 0, vyžadovaný od Fáze 3.
 if (file_exists(DUJ_WELLNESS_DIR . 'vendor/autoload.php')) {
     require_once DUJ_WELLNESS_DIR . 'vendor/autoload.php';
 }
