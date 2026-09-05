@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Duj\Wellness;
 
+use Duj\Wellness\Accommodation\AccommodationClassifier;
+use Duj\Wellness\Accommodation\AccommodationSyncService;
+use Duj\Wellness\Accommodation\IcsParser;
 use Duj\Wellness\Cron\ExpireHoldsJob;
+use Duj\Wellness\Cron\SyncAccommodationJob;
 use Duj\Wellness\Domain\AccessCodeService;
 use Duj\Wellness\Domain\AvailabilityService;
 use Duj\Wellness\Domain\BookingService;
@@ -76,6 +80,7 @@ final class Plugin
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
         add_action('init', [$this, 'registerCronSchedules']);
         add_action(ExpireHoldsJob::HOOK, [$this, 'runExpireHolds']);
+        add_action(SyncAccommodationJob::HOOK, [$this, 'runSyncAccommodation']);
     }
 
     public function registerAdminMenu(): void
@@ -110,6 +115,7 @@ final class Plugin
         });
 
         ExpireHoldsJob::schedule();
+        SyncAccommodationJob::schedule();
     }
 
     public function runExpireHolds(): void
@@ -125,7 +131,7 @@ final class Plugin
 
         $settings       = Settings::instance();
         $schedRepo      = new ScheduleRepository($wpdb);
-        $accomRepo      = new AccommodationRepository($wpdb);
+        $accomRepo      = new AccommodationRepository();
         $priceRepo      = new PriceRepository($wpdb);
         $codeRepo       = new AccessCodeRepository($wpdb);
 
@@ -149,7 +155,7 @@ final class Plugin
         $settings       = Settings::instance();
         $priceRepo      = new PriceRepository($wpdb);
         $schedRepo      = new ScheduleRepository($wpdb);
-        $accomRepo      = new AccommodationRepository($wpdb);
+        $accomRepo      = new AccommodationRepository();
         $pricingService = new PricingService($priceRepo);
         $cutoffPolicy   = CutoffPolicy::fromSettings($settings);
         $schedResolver  = new ScheduleResolver($schedRepo, $accomRepo);
@@ -165,6 +171,16 @@ final class Plugin
             settings:            $settings,
             wpdb:                $wpdb,
         );
+    }
+
+    public function runSyncAccommodation(): void
+    {
+        $syncSvc = new AccommodationSyncService(
+            new AccommodationRepository(null),
+            new IcsParser(),
+            new AccommodationClassifier(),
+        );
+        (new SyncAccommodationJob($syncSvc))->run();
     }
 
     public function settings(): Settings
