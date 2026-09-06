@@ -56,6 +56,7 @@ final class AdminSettingsController
             'gdpr_retention_months'          => $s->gdprRetentionMonths(),
             'debug_mode'                     => $s->debugMode(),
             'logo_url'                       => $s->logoUrl(),
+            'admin_notify_emails'            => $s->get('admin_notify_emails', ''),
         ]);
     }
 
@@ -86,6 +87,7 @@ final class AdminSettingsController
             'address'                        => 'sanitize_text_field',
             'vop_url'                        => 'esc_url_raw',
             'guests_only_message'            => 'sanitize_textarea_field',
+            'admin_notify_emails'            => 'sanitize_textarea_field',
             'gdpr_retention_months'          => 'intval',
             'debug_mode'                     => 'boolval',
             'logo_url'                       => 'esc_url_raw',

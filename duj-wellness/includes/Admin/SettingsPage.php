@@ -193,6 +193,18 @@ final class SettingsPage
                     </div>
                 </div>
 
+                <!-- Notifikace — admin e-maily -->
+                <div class="duj-settings-section">
+                    <h3><?= esc_html__('Notifikace — admin e-maily', 'duj-wellness') ?></h3>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Admin e-mailové adresy', 'duj-wellness') ?></label>
+                        <div>
+                            <textarea name="admin_notify_emails" rows="4" style="width:100%;max-width:400px"><?= esc_textarea((string)$s->get('admin_notify_emails', '')) ?></textarea>
+                            <p class="description"><?= esc_html__('Zadejte jednu adresu na řádek (nebo oddělené čárkou). Tyto adresy obdrží e-mail při každé nové rezervaci.', 'duj-wellness') ?></p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- GDPR -->
                 <div class="duj-settings-section">
                     <h3><?= esc_html__('GDPR', 'duj-wellness') ?></h3>

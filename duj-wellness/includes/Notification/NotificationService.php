@@ -131,7 +131,7 @@ final class NotificationService
     }
 
     /**
-     * Odešle adminu Telegram notifikaci o nové rezervaci.
+     * Odešle adminu Telegram notifikaci a e-maily o nové rezervaci.
      * Akční tokeny vytváří interně.
      */
     public function sendAdminNewBooking(BookingRow $booking): void
@@ -139,7 +139,64 @@ final class NotificationService
         $baseUrl    = function_exists('home_url') ? home_url('/') : 'https://example.com/';
         $confirmUrl = $this->buildActionUrl($baseUrl, 'confirm', $this->tokenService->create($booking->id, 'confirm'));
         $rejectUrl  = $this->buildActionUrl($baseUrl, 'reject', $this->tokenService->create($booking->id, 'reject'));
+
         $this->sendTelegramNewBooking($booking, $confirmUrl, $rejectUrl);
+        $this->sendAdminEmailNewBooking($booking, $confirmUrl, $rejectUrl);
+    }
+
+    private function sendAdminEmailNewBooking(BookingRow $booking, string $confirmUrl, string $rejectUrl): void
+    {
+        $emails = method_exists($this->settings, 'adminNotifyEmails')
+            ? $this->settings->adminNotifyEmails()
+            : [];
+
+        if ($emails === []) {
+            return;
+        }
+
+        $siteName = function_exists('get_option') ? (string) get_option('blogname', 'Domeček u Josefa') : 'Domeček u Josefa';
+        $amount   = number_format($booking->amountMinor / 100, 2, ',', "\u{a0}");
+
+        $paymentLabels = [
+            'stripe_card'  => 'Platba kartou',
+            'qr_checkout'  => 'QR / Stripe Checkout',
+            'bank_transfer' => 'Bankovní převod',
+        ];
+
+        $data = [
+            'site_name'      => $siteName,
+            'logo_url'       => (string) $this->settings->get('logo_url', ''),
+            'reference'      => $booking->reference,
+            'booking_date'   => $booking->bookingDate,
+            'slot_from'      => $booking->slotFrom,
+            'slot_to'        => $booking->slotTo,
+            'resource'       => $booking->comboKey,
+            'customer_name'  => $booking->customerName ?? '',
+            'customer_email' => $booking->customerEmail,
+            'customer_phone' => $booking->customerPhone ?? '',
+            'payment_method' => $paymentLabels[$booking->paymentMethod] ?? $booking->paymentMethod,
+            'amount'         => $amount,
+            'confirm_url'    => $confirmUrl,
+            'reject_url'     => $rejectUrl,
+        ];
+
+        $subjectTpl = (string) $this->settings->get(
+            'email_subject_admin_new_booking',
+            '[Wellness] Nová rezervace {{reference}}'
+        );
+        $bodyTpl  = $this->getTemplate('admin_new_booking');
+        $subject  = $this->renderer->renderSubject($subjectTpl, $data);
+        $rendered = $this->renderer->render($bodyTpl, $data);
+
+        $ctx = [
+            'subject' => $subject,
+            'html'    => $rendered['html'],
+            'text'    => $rendered['text'],
+        ];
+
+        foreach ($emails as $email) {
+            $this->dispatch('email', $email, $rendered['text'], $ctx, $booking->id, 'admin_new_booking');
+        }
     }
 
     /**
