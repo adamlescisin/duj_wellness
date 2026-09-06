@@ -308,18 +308,7 @@ async function initCalendarPage() {
             dayNum.textContent = String(d);
             cell.appendChild(dayNum);
 
-            if (slotTimes.length === 0) {
-                // Closed day — show greyed-out resource chips
-                const resContainer = document.createElement('div');
-                resContainer.className = 'duj-cal-resources';
-                RESOURCES.forEach(({ icon, label }) => {
-                    const chip = document.createElement('div');
-                    chip.className = 'duj-cal-res duj-cal-res--closed';
-                    chip.innerHTML = `<span class="duj-cal-res-icon">${icon}</span><span class="duj-cal-res-label">${label}</span>`;
-                    resContainer.appendChild(chip);
-                });
-                cell.appendChild(resContainer);
-            } else {
+            if (slotTimes.length > 0) {
                 // Build time × service matrix
                 const matrix = document.createElement('table');
                 matrix.className = 'duj-cal-matrix';

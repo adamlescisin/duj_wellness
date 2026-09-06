@@ -251,11 +251,11 @@ final class AdminBookingsController
             $overrides[$ov['override_date']] = $ov['mode'];
         }
 
-        // 2. Fetch active schedule rules with slot times, grouped by weekday.
+        // 2. Fetch active schedule rules with slot times and validity, grouped by weekday.
         $rulesTable = $wpdb->prefix . 'duj_schedule_rules';
         $ruleRows   = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT weekday, time_from, resource_scope FROM `{$rulesTable}`
+                "SELECT weekday, time_from, valid_from, valid_to, resource_scope FROM `{$rulesTable}`
                  WHERE is_active = 1
                    AND (valid_from IS NULL OR valid_from <= %s)
                    AND (valid_to   IS NULL OR valid_to   >= %s)
@@ -266,18 +266,17 @@ final class AdminBookingsController
         ) ?? [];
 
         $allResources = ['sud', 'sauna'];
-        $rulesByWeekday = []; // weekday => time => ['sud','sauna']
+        $rulesByWeekday = []; // weekday => [{ time, validFrom, validTo, resources }]
         foreach ($ruleRows as $r) {
-            $wd       = (int) $r['weekday'];
-            $timeKey  = substr($r['time_from'], 0, 5); // HH:MM
-            $scope    = isset($r['resource_scope']) ? json_decode($r['resource_scope'], true) : null;
+            $wd        = (int) $r['weekday'];
+            $scope     = isset($r['resource_scope']) ? json_decode($r['resource_scope'], true) : null;
             $resources = is_array($scope) ? $scope : $allResources;
-            if (!isset($rulesByWeekday[$wd][$timeKey])) {
-                $rulesByWeekday[$wd][$timeKey] = [];
-            }
-            foreach ($resources as $res) {
-                $rulesByWeekday[$wd][$timeKey][$res] = true;
-            }
+            $rulesByWeekday[$wd][] = [
+                'time'      => substr($r['time_from'], 0, 5),
+                'validFrom' => $r['valid_from'],
+                'validTo'   => $r['valid_to'],
+                'resources' => $resources,
+            ];
         }
 
         // 3. Build base slot availability for every open day in range.
@@ -291,13 +290,24 @@ final class AdminBookingsController
             $isoDay  = (int) $current->format('N');
 
             $isClosed = isset($overrides[$dateStr]) && $overrides[$dateStr] === 'closed';
-            $isOpen   = !$isClosed && isset($rulesByWeekday[$isoDay]);
 
-            if ($isOpen) {
+            // Filter rules valid on this specific date (validity period per-date check).
+            $dayRules = [];
+            if (!$isClosed && isset($rulesByWeekday[$isoDay])) {
+                foreach ($rulesByWeekday[$isoDay] as $rule) {
+                    $fromOk = $rule['validFrom'] === null || $rule['validFrom'] <= $dateStr;
+                    $toOk   = $rule['validTo']   === null || $rule['validTo']   >= $dateStr;
+                    if ($fromOk && $toOk) {
+                        $dayRules[] = $rule;
+                    }
+                }
+            }
+
+            if (!empty($dayRules)) {
                 $slots = [];
-                foreach ($rulesByWeekday[$isoDay] as $timeKey => $resMap) {
-                    foreach (array_keys($resMap) as $res) {
-                        $slots[$timeKey][$res] = 'available';
+                foreach ($dayRules as $rule) {
+                    foreach ($rule['resources'] as $res) {
+                        $slots[$rule['time']][$res] = 'available';
                     }
                 }
                 if (!empty($slots)) {
