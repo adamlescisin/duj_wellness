@@ -7,6 +7,7 @@ namespace Duj\Wellness;
 use Duj\Wellness\Accommodation\AccommodationClassifier;
 use Duj\Wellness\Accommodation\AccommodationSyncService;
 use Duj\Wellness\Accommodation\IcsParser;
+use Duj\Wellness\Cron\DeployJob;
 use Duj\Wellness\Cron\ExpireHoldsJob;
 use Duj\Wellness\Cron\RetentionCleanupJob;
 use Duj\Wellness\Cron\SyncAccommodationJob;
@@ -115,6 +116,7 @@ final class Plugin
         add_action(ExpireHoldsJob::HOOK, [$this, 'runExpireHolds']);
         add_action(SyncAccommodationJob::HOOK, [$this, 'runSyncAccommodation']);
         add_action(RetentionCleanupJob::HOOK, [$this, 'runRetentionCleanup']);
+        add_action(DeployJob::HOOK, [$this, 'runDeploy']);
     }
 
     public function registerGdpr(): void
@@ -264,6 +266,11 @@ final class Plugin
     public function runRetentionCleanup(): void
     {
         (new RetentionCleanupJob())->run();
+    }
+
+    public function runDeploy(string $transientKey): void
+    {
+        (new DeployJob())->run($transientKey);
     }
 
     public function runSyncAccommodation(): void
