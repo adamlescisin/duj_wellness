@@ -82,6 +82,14 @@ final class BookingsController
             );
         }
 
+        // Reject Stripe payment methods before creating a booking if gateway is not configured.
+        if (in_array($paymentMethod, ['stripe_card', 'qr_checkout'], true) && $this->stripeGateway === null) {
+            return new \WP_REST_Response(
+                ['code' => 'payment_unavailable', 'message' => __('Platba kartou není momentálně dostupná. Zvolte prosím jinou platební metodu.', 'duj-wellness')],
+                503
+            );
+        }
+
         // Rozlišení cenové hladiny z kódu
         try {
             $resolution = $this->tierResolver->resolve($accessCode, $date);
