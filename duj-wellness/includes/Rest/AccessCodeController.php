@@ -51,7 +51,12 @@ final class AccessCodeController
         $code = $request->get_param('code');
         $date = $request->get_param('date') ?? Dates::today();
 
-        $resolution = $this->accessCodeService->validate($code, $date);
+        try {
+            $resolution = $this->accessCodeService->validate($code, $date);
+        } catch (\Throwable $e) {
+            error_log('[duj-wellness] AccessCodeController error: ' . $e->getMessage());
+            return new \WP_REST_Response(['valid' => false, 'message' => __('Kód neplatí.', 'duj-wellness')], 200);
+        }
 
         if ($resolution->invalidCode) {
             return new \WP_REST_Response([

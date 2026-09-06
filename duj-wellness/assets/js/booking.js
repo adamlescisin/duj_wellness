@@ -208,7 +208,8 @@ function buildPricingHeader() {
     codeBtn.disabled = true;
     try {
       const res = await apiFetch(`access-codes/validate?code=${encodeURIComponent(code)}`);
-      state.accessCode = code;
+      if (!res.valid) throw new Error('invalid');
+      state.accessCode = res.valid_code ?? code;
       state.tier = res.tier ?? 'public';
       state.codeValid = true;
       feedback.textContent = i18n.validCode;

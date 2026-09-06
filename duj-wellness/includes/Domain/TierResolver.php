@@ -25,7 +25,8 @@ final class TierResolver
     {
         $defaultTier = $this->priceRepo->findDefaultTier();
         if ($defaultTier === null) {
-            throw new \RuntimeException('Výchozí cenová hladina není konfigurována.');
+            error_log('[duj-wellness] TierResolver: no default price tier configured (is_default=1 AND is_active=1 missing from duj_price_tiers).');
+            $defaultTier = new PriceTier('public', 'Veřejná', true, false, true, 'inherit', null, 0, true);
         }
 
         if ($accessCode === null || trim($accessCode) === '') {
