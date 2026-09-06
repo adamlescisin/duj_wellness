@@ -104,6 +104,20 @@ final class SchedulePage
                 <form id="duj-slot-gen-form" style="max-width:600px">
                     <table class="form-table">
                         <tr>
+                            <th><label for="sgen-valid-from"><?= esc_html__('Platnost od', 'duj-wellness') ?></label></th>
+                            <td>
+                                <input type="date" id="sgen-valid-from" name="valid_from" required min="<?= esc_attr(date('Y-m-d')) ?>">
+                                <p class="description"><?= esc_html__('Pravidla budou aktivní od tohoto data.', 'duj-wellness') ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><label for="sgen-valid-to"><?= esc_html__('Platnost do', 'duj-wellness') ?></label></th>
+                            <td>
+                                <input type="date" id="sgen-valid-to" name="valid_to" required min="<?= esc_attr(date('Y-m-d')) ?>">
+                                <p class="description"><?= esc_html__('Pravidla budou aktivní do tohoto data (včetně).', 'duj-wellness') ?></p>
+                            </td>
+                        </tr>
+                        <tr>
                             <th><label for="sgen-from"><?= esc_html__('Okno od', 'duj-wellness') ?></label></th>
                             <td><input type="time" id="sgen-from" name="time_from" value="16:00" required></td>
                         </tr>

@@ -480,6 +480,8 @@ function initSchedulePage() {
                 slot_minutes: parseInt(fd.get('slot_minutes')),
                 buffer_minutes: parseInt(fd.get('buffer_minutes')),
                 weekdays: [...genForm.querySelectorAll('input[name="weekdays[]"]:checked')].map(c=>parseInt(c.value)),
+                valid_from: fd.get('valid_from') || null,
+                valid_to:   fd.get('valid_to')   || null,
                 dry_run: e.submitter?.value === 'preview',
             };
 
@@ -489,8 +491,11 @@ function initSchedulePage() {
                 });
                 const preview = document.getElementById('duj-slot-preview');
                 if (payload.dry_run) {
+                    const validityNote = (res.valid_from && res.valid_to)
+                        ? ` <em>(platnost ${escHtml(res.valid_from)} – ${escHtml(res.valid_to)})</em>`
+                        : '';
                     preview.style.display = 'block';
-                    preview.innerHTML = `<strong>Náhled ${res.slots.length} slotů:</strong>
+                    preview.innerHTML = `<strong>Náhled ${res.slots.length} slotů${validityNote}:</strong>
                         <ul>${res.slots.map(s=>`<li>${escHtml(s.weekday_label)}: ${escHtml(s.time_from)}–${escHtml(s.time_to)}</li>`).join('')}</ul>`;
                 } else {
                     showNotice(`Vygenerováno ${res.count} pravidel.`);

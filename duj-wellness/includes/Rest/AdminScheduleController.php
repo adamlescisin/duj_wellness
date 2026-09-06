@@ -158,12 +158,25 @@ final class AdminScheduleController
         global $wpdb;
         $body = $req->get_json_params();
 
-        $timeFrom     = sanitize_text_field($body['time_from']     ?? '16:00');
-        $timeTo       = sanitize_text_field($body['time_to']       ?? '22:00');
-        $slotMinutes  = max(30, min(480, (int) ($body['slot_minutes']   ?? 120)));
-        $bufferMinutes = max(0, min(240, (int) ($body['buffer_minutes'] ?? 60)));
-        $weekdays     = array_map('intval', (array) ($body['weekdays'] ?? range(1, 7)));
-        $isDryRun     = !empty($body['dry_run']);
+        $timeFrom      = sanitize_text_field($body['time_from']      ?? '16:00');
+        $timeTo        = sanitize_text_field($body['time_to']        ?? '22:00');
+        $slotMinutes   = max(30, min(480, (int) ($body['slot_minutes']   ?? 120)));
+        $bufferMinutes = max(0,  min(240, (int) ($body['buffer_minutes'] ?? 60)));
+        $weekdays      = array_map('intval', (array) ($body['weekdays'] ?? range(1, 7)));
+        $isDryRun      = !empty($body['dry_run']);
+
+        $validFrom = !empty($body['valid_from']) ? sanitize_text_field($body['valid_from']) : null;
+        $validTo   = !empty($body['valid_to'])   ? sanitize_text_field($body['valid_to'])   : null;
+
+        if ($validFrom !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $validFrom)) {
+            return new \WP_Error('invalid_valid_from', 'Neplatné datum platnosti od.', ['status' => 400]);
+        }
+        if ($validTo !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $validTo)) {
+            return new \WP_Error('invalid_valid_to', 'Neplatné datum platnosti do.', ['status' => 400]);
+        }
+        if ($validFrom !== null && $validTo !== null && $validFrom > $validTo) {
+            return new \WP_Error('invalid_validity_range', 'Datum platnosti od musí být před datem platnosti do.', ['status' => 400]);
+        }
 
         $weekdayLabels = [1=>'Po',2=>'Út',3=>'St',4=>'Čt',5=>'Pá',6=>'So',7=>'Ne'];
 
@@ -182,23 +195,27 @@ final class AdminScheduleController
                     'weekday_label' => $weekdayLabels[$wd] ?? (string)$wd,
                     'time_from'     => $slot['from'],
                     'time_to'       => $slot['to'],
+                    'valid_from'    => $validFrom,
+                    'valid_to'      => $validTo,
                 ];
             }
         }
 
         if ($isDryRun) {
-            return new \WP_REST_Response(['slots' => $preview]);
+            return new \WP_REST_Response(['slots' => $preview, 'valid_from' => $validFrom, 'valid_to' => $validTo]);
         }
 
         $table = $wpdb->prefix . 'duj_schedule_rules';
         $count = 0;
         foreach ($preview as $row) {
             $wpdb->insert($table, [
-                'weekday'   => $row['weekday'],
-                'time_from' => $row['time_from'],
-                'time_to'   => $row['time_to'],
-                'label'     => "Generovaný slot {$row['time_from']}–{$row['time_to']}",
-                'is_active' => 1,
+                'weekday'    => $row['weekday'],
+                'time_from'  => $row['time_from'],
+                'time_to'    => $row['time_to'],
+                'label'      => "Generovaný slot {$row['time_from']}–{$row['time_to']}",
+                'valid_from' => $validFrom,
+                'valid_to'   => $validTo,
+                'is_active'  => 1,
             ]);
             $count++;
         }
