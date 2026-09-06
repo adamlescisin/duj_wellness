@@ -46,6 +46,27 @@ final class ActionController
                 'args'                => $this->getArgs(),
             ],
         ]);
+
+        // WordPress always JSON-encodes REST responses. For browser-navigable HTML pages
+        // we intercept before encoding and output the HTML body directly.
+        add_filter('rest_pre_serve_request', [$this, 'serveHtmlResponse'], 10, 2);
+    }
+
+    public function serveHtmlResponse(bool $served, \WP_REST_Response $result): bool
+    {
+        if ($result->get_header('Content-Type') !== 'text/html; charset=UTF-8') {
+            return $served;
+        }
+
+        $html = $result->get_data();
+        if (!is_string($html)) {
+            return $served;
+        }
+
+        status_header($result->get_status());
+        header('Content-Type: text/html; charset=UTF-8');
+        echo $html;
+        return true;
     }
 
     /**
