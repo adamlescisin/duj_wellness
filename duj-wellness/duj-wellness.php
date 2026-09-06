@@ -17,11 +17,33 @@ declare(strict_types=1);
 
 defined('ABSPATH') || exit;
 
-define('DUJ_WELLNESS_VERSION', '0.1.7');
+define('DUJ_WELLNESS_VERSION', '0.1.8');
 define('DUJ_WELLNESS_FILE', __FILE__);
 define('DUJ_WELLNESS_DIR', plugin_dir_path(__FILE__));
 define('DUJ_WELLNESS_URL', plugin_dir_url(__FILE__));
 define('DUJ_WELLNESS_BASENAME', plugin_basename(__FILE__));
+
+// Self-healing OPcache flush — runs from this file which is always loaded fresh.
+// On the first request after each version bump, invalidates every plugin PHP file
+// so OPcache doesn't serve stale bytecode when validate_timestamps=0 on the server.
+(static function (): void {
+    if (!function_exists('opcache_invalidate')) {
+        return;
+    }
+    $stamp = plugin_dir_path(__FILE__) . '.opcache-version';
+    if (@file_get_contents($stamp) === DUJ_WELLNESS_VERSION) {
+        return;
+    }
+    $dir = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator(plugin_dir_path(__FILE__), \FilesystemIterator::SKIP_DOTS)
+    );
+    foreach ($dir as $f) {
+        if ($f->isFile() && $f->getExtension() === 'php') {
+            opcache_invalidate($f->getPathname(), true);
+        }
+    }
+    @file_put_contents($stamp, DUJ_WELLNESS_VERSION);
+})();
 
 // PSR-4 autoloader pro vlastní namespace — funguje i bez Composeru.
 spl_autoload_register(static function (string $class): void {
