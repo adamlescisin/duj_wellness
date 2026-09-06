@@ -9,9 +9,11 @@ use Duj\Wellness\Support\Settings;
 /**
  * POST /duj/v1/deploy — GitHub webhook auto-deploy.
  *
- * Validates X-Hub-Signature-256, checks pushed branch, runs git pull.
- * The shared secret must be set in wp-config.php as DUJ_DEPLOY_SECRET
- * or in plugin settings as 'deploy_secret'.
+ * Downloads the repo ZIP from GitHub and extracts the duj-wellness/ subfolder
+ * over the plugin directory. Works on shared hosting with no git installed.
+ *
+ * Security: validates X-Hub-Signature-256 HMAC before doing anything.
+ * Secret: DUJ_DEPLOY_SECRET constant in wp-config.php (preferred) or plugin setting.
  */
 final class DeployController
 {
@@ -27,7 +29,7 @@ final class DeployController
     public function handle(\WP_REST_Request $req): \WP_REST_Response|\WP_Error
     {
         $settings = Settings::instance();
-        $secret   = defined('DUJ_DEPLOY_SECRET')
+        $secret   = defined('DUJ_DEPLOY_SECRET') && DUJ_DEPLOY_SECRET !== ''
             ? DUJ_DEPLOY_SECRET
             : $settings->deploySecret();
 
@@ -35,26 +37,35 @@ final class DeployController
             return new \WP_Error('deploy_not_configured', 'Deploy secret not configured.', ['status' => 503]);
         }
 
-        // Validate HMAC-SHA256 signature from GitHub
-        $sigHeader = $req->get_header('x-hub-signature-256');
-        if ($sigHeader === null || $sigHeader === '') {
+        // Validate HMAC-SHA256 signature.
+        $sigHeader = $req->get_header('x-hub-signature-256') ?? '';
+        if ($sigHeader === '') {
             return new \WP_Error('missing_signature', 'Missing X-Hub-Signature-256 header.', ['status' => 401]);
         }
 
-        $rawBody       = $req->get_body();
-        $expectedSig   = 'sha256=' . hash_hmac('sha256', $rawBody, $secret);
+        $rawBody     = $req->get_body();
+        $expectedSig = 'sha256=' . hash_hmac('sha256', $rawBody, $secret);
         if (!hash_equals($expectedSig, $sigHeader)) {
             return new \WP_Error('invalid_signature', 'Signature mismatch.', ['status' => 401]);
         }
 
-        // Only act on push events
-        $event = $req->get_header('x-github-event');
+        // Only act on push events.
+        $event = $req->get_header('x-github-event') ?? '';
         if ($event !== 'push') {
             return new \WP_REST_Response(['skipped' => true, 'event' => $event], 200);
         }
 
-        $payload     = $req->get_json_params();
-        $pushedRef   = (string) ($payload['ref'] ?? '');
+        $payload      = $req->get_json_params();
+        $pushedRef    = (string) ($payload['ref'] ?? '');
+        $afterSha     = (string) ($payload['after'] ?? '');
+        $repoFullName = (string) ($payload['repository']['full_name'] ?? '');
+        $isPrivate    = (bool)   ($payload['repository']['private']   ?? false);
+
+        // Skip branch-delete events (after = 000...000).
+        if ($afterSha === '' || ltrim($afterSha, '0') === '') {
+            return new \WP_REST_Response(['skipped' => true, 'reason' => 'branch_deleted'], 200);
+        }
+
         $targetBranch = $settings->deployBranch() ?: 'main';
         $expectedRef  = 'refs/heads/' . ltrim($targetBranch, '/');
 
@@ -67,75 +78,160 @@ final class DeployController
             ], 200);
         }
 
-        $pluginDir = realpath(dirname(__DIR__, 2));
-        if ($pluginDir === false || !is_dir($pluginDir . '/.git')) {
-            return new \WP_Error('not_a_git_repo', 'Plugin directory is not a git repository.', ['status' => 500]);
+        if ($repoFullName === '') {
+            return new \WP_Error('missing_repo', 'Cannot determine repository from payload.', ['status' => 400]);
         }
 
-        $output = [];
-        $code   = 0;
-        $this->runGitPull($pluginDir, $targetBranch, $output, $code);
+        // Optional GitHub token for private repos.
+        $githubToken = defined('DUJ_GITHUB_TOKEN') && DUJ_GITHUB_TOKEN !== '' ? DUJ_GITHUB_TOKEN : '';
+        if ($isPrivate && $githubToken === '') {
+            return new \WP_Error('private_repo', 'Repository is private but DUJ_GITHUB_TOKEN is not set.', ['status' => 503]);
+        }
 
-        if ($code !== 0) {
-            error_log('[duj-wellness] git pull failed (exit ' . $code . '): ' . implode("\n", $output));
+        $pluginDir = (string) realpath(dirname(__DIR__, 2));
+        if ($pluginDir === '' || !is_dir($pluginDir)) {
+            return new \WP_Error('plugin_dir_missing', 'Cannot resolve plugin directory.', ['status' => 500]);
+        }
 
-            return new \WP_Error('git_pull_failed', 'git pull returned non-zero exit code.', [
+        $result = $this->deployFromZip($repoFullName, $afterSha, $pluginDir, $githubToken);
+
+        if (isset($result['error'])) {
+            error_log('[duj-wellness] Deploy failed: ' . json_encode($result));
+            return new \WP_Error('deploy_failed', $result['message'] ?? 'Deploy failed.', [
                 'status' => 500,
-                'output' => $output,
-                'code'   => $code,
+                'detail' => $result,
             ]);
         }
 
-        error_log('[duj-wellness] Auto-deploy successful: ' . implode(' | ', $output));
+        error_log('[duj-wellness] Auto-deploy successful: ' . $repoFullName . '@' . substr($afterSha, 0, 7));
 
         return new \WP_REST_Response([
             'success' => true,
-            'branch'  => $targetBranch,
-            'output'  => $output,
+            'repo'    => $repoFullName,
+            'sha'     => substr($afterSha, 0, 7),
+            'files'   => $result['files'] ?? 0,
         ], 200);
     }
 
-    private function runGitPull(string $dir, string $branch, array &$output, int &$exitCode): void
+    /**
+     * Downloads the GitHub ZIP for the given commit SHA and extracts
+     * the duj-wellness/ subfolder into $pluginDir.
+     *
+     * @return array{success: true, files: int}|array{error: string, message: string}
+     */
+    private function deployFromZip(string $repoFullName, string $sha, string $pluginDir, string $token): array
     {
-        $descriptors = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
+        // GitHub archive URL by exact commit SHA — reproducible and immutable.
+        $zipUrl = "https://github.com/{$repoFullName}/archive/{$sha}.zip";
 
-        $env = array_merge($_ENV, [
-            'HOME'              => $dir,
-            'GIT_TERMINAL_PROMPT' => '0',
-        ]);
+        // Download zip to a temp file.
+        $tmpZip = tempnam(sys_get_temp_dir(), 'duj_deploy_') . '.zip';
 
-        $proc = proc_open(
-            ['git', '-C', $dir, 'pull', 'origin', $branch, '--ff-only'],
-            $descriptors,
-            $pipes,
-            $dir,
-            $env
-        );
-
-        if (!is_resource($proc)) {
-            $exitCode = 1;
-            $output   = ['Failed to start git process.'];
-            return;
+        $headers = ['User-Agent' => 'duj-wellness-deploy/1.0'];
+        if ($token !== '') {
+            $headers['Authorization'] = 'Bearer ' . $token;
         }
 
-        fclose($pipes[0]);
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $exitCode = proc_close($proc);
+        $response = wp_remote_get($zipUrl, [
+            'timeout'  => 60,
+            'stream'   => true,
+            'filename' => $tmpZip,
+            'headers'  => $headers,
+        ]);
 
-        $output = array_filter(
-            array_merge(
-                explode("\n", trim((string) $stdout)),
-                explode("\n", trim((string) $stderr))
-            ),
-            static fn(string $l): bool => $l !== ''
-        );
-        $output = array_values($output);
+        if (is_wp_error($response)) {
+            @unlink($tmpZip);
+            return ['error' => 'download_failed', 'message' => $response->get_error_message()];
+        }
+
+        $httpCode = wp_remote_retrieve_response_code($response);
+        if ($httpCode !== 200) {
+            @unlink($tmpZip);
+            return ['error' => 'download_failed', 'message' => "GitHub returned HTTP {$httpCode} for ZIP download."];
+        }
+
+        if (!class_exists('ZipArchive')) {
+            @unlink($tmpZip);
+            return ['error' => 'zip_unavailable', 'message' => 'ZipArchive extension is not available on this server.'];
+        }
+
+        $zip    = new \ZipArchive();
+        $opened = $zip->open($tmpZip);
+        if ($opened !== true) {
+            @unlink($tmpZip);
+            return ['error' => 'zip_open_failed', 'message' => "ZipArchive::open() returned error code {$opened}."];
+        }
+
+        // GitHub names the root folder: {repo-name}-{sha}
+        // Determine it from the first entry.
+        $firstEntry = $zip->getNameIndex(0);
+        if ($firstEntry === false) {
+            $zip->close();
+            @unlink($tmpZip);
+            return ['error' => 'zip_empty', 'message' => 'Downloaded ZIP has no entries.'];
+        }
+
+        $zipRoot      = explode('/', $firstEntry)[0] . '/';       // e.g. "duj_wellness-abc1234/"
+        $innerPrefix  = $zipRoot . 'duj-wellness/';               // e.g. "duj_wellness-abc1234/duj-wellness/"
+        $prefixLen    = strlen($innerPrefix);
+
+        // Extract only entries inside duj-wellness/ directly to the plugin dir.
+        $fileCount = 0;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entryName = $zip->getNameIndex($i);
+            if ($entryName === false) {
+                continue;
+            }
+
+            // Skip entries outside the duj-wellness/ subfolder.
+            if (strncmp($entryName, $innerPrefix, $prefixLen) !== 0) {
+                continue;
+            }
+
+            $relativePath = substr($entryName, $prefixLen);
+            if ($relativePath === '' || $relativePath === false) {
+                continue; // This is the duj-wellness/ directory entry itself.
+            }
+
+            // Prevent path traversal.
+            $realTarget = realpath($pluginDir . '/' . dirname($relativePath));
+            if ($realTarget === false || strncmp($realTarget, $pluginDir, strlen($pluginDir)) !== 0) {
+                continue;
+            }
+
+            $targetPath = $pluginDir . '/' . $relativePath;
+
+            if (str_ends_with($entryName, '/')) {
+                // Directory entry.
+                if (!is_dir($targetPath)) {
+                    wp_mkdir_p($targetPath);
+                }
+                continue;
+            }
+
+            // File entry — ensure parent directory exists.
+            $parentDir = dirname($targetPath);
+            if (!is_dir($parentDir)) {
+                wp_mkdir_p($parentDir);
+            }
+
+            $content = $zip->getFromIndex($i);
+            if ($content !== false) {
+                file_put_contents($targetPath, $content);
+                $fileCount++;
+            }
+        }
+
+        $zip->close();
+        @unlink($tmpZip);
+
+        if ($fileCount === 0) {
+            return [
+                'error'   => 'no_files_extracted',
+                'message' => "No files found under {$innerPrefix} in the ZIP. Check that 'duj-wellness/' exists at repo root.",
+            ];
+        }
+
+        return ['success' => true, 'files' => $fileCount];
     }
 }

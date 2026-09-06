@@ -84,8 +84,23 @@ final class BookingsController
             );
         }
 
+        // Reject Stripe payment methods before creating a booking if gateway is not configured.
+        if (in_array($paymentMethod, ['stripe_card', 'qr_checkout'], true) && $this->stripeGateway === null) {
+            return new \WP_REST_Response(
+                ['code' => 'payment_unavailable', 'message' => __('Platba kartou není momentálně dostupná. Zvolte prosím jinou platební metodu.', 'duj-wellness')],
+                503
+            );
+        }
+
         // Rozlišení cenové hladiny z kódu
-        $resolution = $this->tierResolver->resolve($accessCode, $date);
+        try {
+            $resolution = $this->tierResolver->resolve($accessCode, $date);
+        } catch (\RuntimeException) {
+            return new \WP_REST_Response(
+                ['code' => 'service_unavailable', 'message' => __('Rezervační systém není nakonfigurován. Kontaktujte provozovatele.', 'duj-wellness')],
+                503
+            );
+        }
         if ($resolution->invalidCode) {
             return new \WP_REST_Response(
                 ['code' => 'invalid_code', 'message' => __('Kód neplatí.', 'duj-wellness')],
@@ -348,11 +363,9 @@ final class BookingsController
 
     private function getClientIp(\WP_REST_Request $request): string
     {
-        $server = $request->get_server_params();
-
         foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $header) {
-            if (!empty($server[$header])) {
-                $ip = trim(explode(',', $server[$header])[0]);
+            if (!empty($_SERVER[$header])) {
+                $ip = trim(explode(',', $_SERVER[$header])[0]);
                 if (filter_var($ip, FILTER_VALIDATE_IP)) {
                     return $ip;
                 }
