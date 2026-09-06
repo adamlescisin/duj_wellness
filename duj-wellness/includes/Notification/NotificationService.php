@@ -131,6 +131,63 @@ final class NotificationService
     }
 
     /**
+     * Odešle adminu Telegram notifikaci o nové rezervaci.
+     * Akční tokeny vytváří interně.
+     */
+    public function sendAdminNewBooking(BookingRow $booking): void
+    {
+        $baseUrl    = function_exists('home_url') ? home_url('/') : 'https://example.com/';
+        $confirmUrl = $this->buildActionUrl($baseUrl, 'confirm', $this->tokenService->create($booking->id, 'confirm'));
+        $rejectUrl  = $this->buildActionUrl($baseUrl, 'reject', $this->tokenService->create($booking->id, 'reject'));
+        $this->sendTelegramNewBooking($booking, $confirmUrl, $rejectUrl);
+    }
+
+    /**
+     * Odešle zákazníkovi e-mail s platebními instrukcemi pro bankovní převod.
+     *
+     * @param array{iban?:string,account_number?:string,variable_symbol?:string,hold_expires_at?:string,hold_hours?:int} $payment
+     */
+    public function sendBankTransferInstructions(BookingRow $booking, array $payment): void
+    {
+        $siteName = function_exists('get_option') ? (string) get_option('blogname', 'Domeček u Josefa') : 'Domeček u Josefa';
+
+        $amount = number_format($booking->amountMinor / 100, 2, ',', '\u{a0}');
+
+        $data = [
+            'site_name'       => $siteName,
+            'logo_url'        => (string) $this->settings->get('logo_url', ''),
+            'reference'       => $booking->reference,
+            'booking_date'    => $booking->bookingDate,
+            'slot_from'       => $booking->slotFrom,
+            'slot_to'         => $booking->slotTo,
+            'resource'        => $booking->comboKey,
+            'amount'          => $amount,
+            'iban'            => $payment['iban'] ?? '',
+            'account_number'  => $payment['account_number'] ?? '',
+            'variable_symbol' => $payment['variable_symbol'] ?? preg_replace('/[^0-9]/', '', $booking->reference),
+            'deadline'        => isset($payment['hold_expires_at'])
+                ? (new \DateTimeImmutable($payment['hold_expires_at'], new \DateTimeZone('Europe/Prague')))->format('j. n. Y H:i')
+                : '',
+        ];
+
+        $subjectTpl = (string) $this->settings->get(
+            'email_subject_bank_transfer',
+            'Platební instrukce k rezervaci {{reference}}'
+        );
+        $bodyTpl  = $this->getTemplate('bank_transfer_instructions');
+        $subject  = $this->renderer->renderSubject($subjectTpl, $data);
+        $rendered = $this->renderer->render($bodyTpl, $data);
+
+        $ctx = [
+            'subject' => $subject,
+            'html'    => $rendered['html'],
+            'text'    => $rendered['text'],
+        ];
+
+        $this->dispatch('email', $booking->customerEmail, $rendered['text'], $ctx, $booking->id, 'bank_transfer_instructions');
+    }
+
+    /**
      * Odešle Telegram notifikaci operátorovi při nové rezervaci.
      */
     public function sendTelegramNewBooking(BookingRow $booking, string $confirmUrl, string $rejectUrl): void

@@ -235,7 +235,7 @@ async function openBookingModal(id) {
         if (['pending_payment','awaiting_confirmation','confirmed'].includes(b.status)) {
             footer.appendChild(makeBtn('Zrušit', '', 'cancel'));
         }
-        if (b.status === 'pending_payment' && b.payment_method === 'qr_bank') {
+        if (b.status === 'pending_payment' && (b.payment_method === 'bank_transfer' || b.payment_method === 'qr_bank')) {
             footer.appendChild(makeBtn('Označit zaplaceno', 'button-secondary', 'mark_paid'));
         }
 

@@ -7,6 +7,7 @@ namespace Duj\Wellness\Rest;
 use Duj\Wellness\Domain\BookingRequest;
 use Duj\Wellness\Domain\BookingService;
 use Duj\Wellness\Domain\TierResolver;
+use Duj\Wellness\Notification\NotificationService;
 use Duj\Wellness\Payment\QrPaymentGenerator;
 use Duj\Wellness\Payment\StripeGatewayFactory;
 use Duj\Wellness\Payment\StripeGatewayInterface;
@@ -28,6 +29,7 @@ final class BookingsController
         private readonly ?StripeGatewayInterface $stripeGateway = null,
         private readonly ?SettingsInterface $settings = null,
         private readonly ?BookingRepositoryInterface $bookingRepo = null,
+        private readonly ?NotificationService $notificationService = null,
     ) {}
 
     public function register(): void
@@ -157,6 +159,21 @@ final class BookingsController
         // Bankovní převod — nastav prodlouženou dobu rezervace a vrať QR data
         if ($paymentMethod === 'bank_transfer') {
             $responseData['payment'] = $this->createBankTransferPayment($result->bookingId, $result->reference);
+        }
+
+        // Odešli notifikace (selhání nesmí blokovat odpověď)
+        if ($this->notificationService !== null) {
+            try {
+                $freshBooking = $this->bookingRepo?->findById($result->bookingId);
+                if ($freshBooking !== null) {
+                    $this->notificationService->sendAdminNewBooking($freshBooking);
+                    if ($paymentMethod === 'bank_transfer' && isset($responseData['payment'])) {
+                        $this->notificationService->sendBankTransferInstructions($freshBooking, $responseData['payment']);
+                    }
+                }
+            } catch (\Throwable $e) {
+                error_log('[duj-wellness] BookingsController: notification failed: ' . $e->getMessage());
+            }
         }
 
         return new \WP_REST_Response($responseData, 201);

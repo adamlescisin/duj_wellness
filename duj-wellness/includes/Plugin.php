@@ -220,6 +220,7 @@ final class Plugin
             $stripeGateway,
             $settings,
             $bookingRepo,
+            $notificationSvc,
         ))->register();
 
         // Stripe webhook controller — only when Stripe is available.
