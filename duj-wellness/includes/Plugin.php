@@ -20,6 +20,7 @@ use Duj\Wellness\Domain\TierResolver;
 use Duj\Wellness\Migrations\Migration001Initial;
 use Duj\Wellness\Migrations\Migration002ScheduleOverrideModes;
 use Duj\Wellness\Migrations\Migration003ReseedDefaults;
+use Duj\Wellness\Migrations\Migration004BackfillManualBookingItems;
 use Duj\Wellness\Migrations\MigrationRunner;
 use Duj\Wellness\Repository\AccessCodeRepository;
 use Duj\Wellness\Repository\AccommodationRepository;
@@ -100,6 +101,7 @@ final class Plugin
         $runner->register(new Migration001Initial());
         $runner->register(new Migration002ScheduleOverrideModes());
         $runner->register(new Migration003ReseedDefaults());
+        $runner->register(new Migration004BackfillManualBookingItems());
         $runner->run();
     }
 

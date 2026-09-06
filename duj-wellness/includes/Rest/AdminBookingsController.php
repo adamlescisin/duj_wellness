@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Duj\Wellness\Rest;
 
 use Duj\Wellness\Domain\BookingService;
+use Duj\Wellness\Domain\ComboKey;
 use Duj\Wellness\Notification\NotificationService;
 use Duj\Wellness\Repository\BookingRepository;
+use Duj\Wellness\Support\Settings;
 
 /**
  * Admin REST endpointy pro správu rezervací.
@@ -396,8 +398,64 @@ final class AdminBookingsController
             'created_at'     => $now,
             'updated_at'     => $now,
         ]);
+        $bookingId = (int) $wpdb->insert_id;
 
-        return new \WP_REST_Response(['id' => $wpdb->insert_id, 'reference' => $reference], 201);
+        // Insert booking items so the slot is blocked in the availability overlap check.
+        $this->insertManualBookingItems($wpdb, $bookingId, $uuid, $date, $slotFrom, $slotTo, $comboKey, $now);
+
+        return new \WP_REST_Response(['id' => $bookingId, 'reference' => $reference], 201);
+    }
+
+    private function insertManualBookingItems(
+        \wpdb $wpdb,
+        int $bookingId,
+        string $uuid,
+        string $date,
+        string $slotFrom,
+        string $slotTo,
+        string $comboKey,
+        string $now,
+    ): void {
+        $resourceSlugs = ComboKey::toResourceSlugs($comboKey);
+        if (empty($resourceSlugs)) {
+            return;
+        }
+
+        $resourceTable = $wpdb->prefix . 'duj_resources';
+        $placeholders  = implode(',', array_fill(0, count($resourceSlugs), '%s'));
+        $resourceIds   = $wpdb->get_col(
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $wpdb->prepare("SELECT id FROM `{$resourceTable}` WHERE slug IN ($placeholders)", ...$resourceSlugs)
+        ) ?? [];
+
+        if (empty($resourceIds)) {
+            return;
+        }
+
+        $tz            = new \DateTimeZone('Europe/Prague');
+        $utcTz         = new \DateTimeZone('UTC');
+        $bufferMinutes = Settings::instance()->bufferMinutes();
+        $slotFromFull  = strlen($slotFrom) === 5 ? $slotFrom . ':00' : $slotFrom;
+        $slotToFull    = strlen($slotTo)   === 5 ? $slotTo   . ':00' : $slotTo;
+
+        $blockedFrom = (new \DateTimeImmutable("{$date} {$slotFromFull}", $tz))->setTimezone($utcTz)->format('Y-m-d H:i:s');
+        $blockedTo   = (new \DateTimeImmutable("{$date} {$slotToFull}", $tz))
+            ->setTimezone($utcTz)
+            ->modify("+{$bufferMinutes} minutes")
+            ->format('Y-m-d H:i:s');
+
+        $itemTable = $wpdb->prefix . 'duj_booking_items';
+        foreach ($resourceIds as $resourceId) {
+            $wpdb->insert($itemTable, [
+                'booking_id'     => $bookingId,
+                'resource_id'    => (int) $resourceId,
+                'blocking_key'   => $uuid,
+                'blocked_from'   => $blockedFrom,
+                'blocked_to'     => $blockedTo,
+                'buffer_minutes' => $bufferMinutes,
+                'created_at'     => $now,
+            ]);
+        }
     }
 
     private function buildWhere(string $status, string $service, string $date_from, string $date_to, string $search, \wpdb $wpdb): array
