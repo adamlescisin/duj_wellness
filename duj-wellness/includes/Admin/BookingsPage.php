@@ -43,6 +43,7 @@ final class BookingsPage
             self::exportCsv();
         }
         ?>
+        <script>document.body.dataset.dujPage = 'bookings';</script>
         <div class="wrap" data-duj-page="bookings">
             <h1 class="wp-heading-inline"><?= esc_html__('Rezervace wellness', 'duj-wellness') ?></h1>
             <div class="duj-notice-area"></div>

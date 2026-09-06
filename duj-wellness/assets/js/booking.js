@@ -627,14 +627,14 @@ async function renderPayment() {
   // Recap
   const slot = state.selectedSlot;
   const recap = el('div', { className: 'duj-recap' });
-  const rows = [
+  const recapRows = [
     ['Datum', state.selectedDate],
     ['Čas',   slot ? `${slot.from.slice(0,5)}–${slot.to.slice(0,5)}` : ''],
     ['Služba', comboLabel(state.selectedCombo)],
     ['Zákazník', state.customerName],
     ['E-mail', state.customerEmail],
   ];
-  rows.forEach(([k, v]) => {
+  recapRows.forEach(([k, v]) => {
     const row = el('div', { className: 'duj-recap__row' });
     row.append(el('span', { textContent: k }), el('strong', { textContent: v ?? '' }));
     recap.append(row);
@@ -647,8 +647,8 @@ async function renderPayment() {
   }
   app.append(recap);
 
-  // Hold timer
-  const timerWrap = el('div', { className: 'duj-hold-timer' });
+  // Hold timer — shown only after booking is created
+  const timerWrap = el('div', { className: 'duj-hold-timer', hidden: true });
   const timerVal  = el('span', { className: 'duj-hold-timer__time', textContent: '—' });
   timerWrap.append(el('span', { textContent: i18n.holdTimer + ' ' }), timerVal);
   app.append(timerWrap);
@@ -656,104 +656,155 @@ async function renderPayment() {
   const errNotice = el('div', { className: 'duj-notice duj-notice--error', hidden: true, role: 'alert' });
   app.append(errNotice);
 
-  // Create booking if not already done
-  if (!state.clientSecret) {
-    const loadEl = el('div', { className: 'duj-wellness__skeleton' });
-    app.append(loadEl);
+  // If booking already created (user navigated back and forward)
+  if (state.bookingId) {
+    if (state.holdExpiresAt) { timerWrap.hidden = false; startTimer(timerVal, new Date(state.holdExpiresAt)); }
+    if (state.paymentMethod === 'bank_transfer') { showBankDetails(state.bankPayment); return; }
+    if (state.clientSecret) { mountStripeElement(); return; }
+  }
+
+  // Payment method selector
+  const hasCreditCard = !!STRIPE_KEY;
+  const methods = hasCreditCard
+    ? [{ value: 'stripe_card', label: i18n.payStripeCard ?? 'Platba kartou' },
+       { value: 'bank_transfer', label: i18n.payBankTransfer ?? 'Bankovní převod / QR platba' }]
+    : [{ value: 'bank_transfer', label: i18n.payBankTransfer ?? 'Bankovní převod / QR platba' }];
+
+  let selectedMethod = methods[0].value;
+
+  const methodsWrap = el('fieldset', { className: 'duj-payment-methods' });
+  const legend = el('legend', { className: 'duj-payment-methods__legend', textContent: 'Způsob platby' });
+  methodsWrap.append(legend);
+  methods.forEach(m => {
+    const id  = `duj-pm-${m.value}`;
+    const wrap = el('div', { className: 'duj-payment-method' });
+    const radio = el('input', { type: 'radio', name: 'duj_payment_method', id });
+    radio.value   = m.value;
+    radio.checked = m.value === selectedMethod;
+    radio.addEventListener('change', () => { selectedMethod = m.value; });
+    const label = el('label', { htmlFor: id, textContent: m.label });
+    wrap.append(radio, label);
+    methodsWrap.append(wrap);
+  });
+  app.append(methodsWrap);
+
+  const payBtn = el('button', { type: 'button', className: 'duj-btn duj-btn--full', textContent: i18n.pay ?? 'Pokračovat k platbě' });
+  app.append(payBtn);
+  app.append(backBtn(3));
+
+  payBtn.addEventListener('click', async () => {
+    payBtn.disabled = true;
+    errNotice.hidden = true;
 
     try {
-      const body = {
-        booking_date:   state.selectedDate,
-        slot_from:      state.selectedSlot.from,
-        combo_key:      state.selectedCombo,
-        customer_name:  state.customerName,
-        customer_email: state.customerEmail,
-        customer_phone: state.customerPhone,
-        guests:         state.guests,
-        customer_note:  state.note,
-        payment_method: 'stripe_card',
-        code:           state.accessCode || undefined,
-        consent_at:     new Date().toISOString(),
-      };
-
       const res = await apiFetch('bookings', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          booking_date:   state.selectedDate,
+          slot_from:      state.selectedSlot.from,
+          combo_key:      state.selectedCombo,
+          customer_name:  state.customerName,
+          customer_email: state.customerEmail,
+          customer_phone: state.customerPhone,
+          guests:         state.guests,
+          customer_note:  state.note,
+          payment_method: selectedMethod,
+          code:           state.accessCode || undefined,
+          consent_at:     new Date().toISOString(),
+        }),
       });
 
-      state.bookingId      = res.booking_id;
-      state.bookingRef     = res.reference;
-      state.clientSecret   = res.payment?.client_secret;
-      state.holdExpiresAt  = res.hold_expires_at;
+      state.bookingId     = res.booking_id;
+      state.bookingRef    = res.reference;
+      state.paymentMethod = selectedMethod;
+      state.holdExpiresAt = res.payment?.hold_expires_at ?? res.hold_expires_at ?? null;
 
-      loadEl.remove();
+      methodsWrap.remove();
+      payBtn.remove();
+
+      if (state.holdExpiresAt) { timerWrap.hidden = false; startTimer(timerVal, new Date(state.holdExpiresAt)); }
+
+      if (selectedMethod === 'bank_transfer') {
+        state.bankPayment = res.payment;
+        showBankDetails(res.payment);
+      } else {
+        state.clientSecret = res.payment?.client_secret ?? null;
+        mountStripeElement();
+      }
     } catch (err) {
-      loadEl.remove();
+      payBtn.disabled = false;
       errNotice.textContent = err.code === 'slot_taken'
         ? i18n.slotTaken
         : (err.message || i18n.errorGeneric);
       errNotice.hidden = false;
-      app.append(backBtn(3));
-      return;
-    }
-  }
-
-  // Timer countdown
-  if (state.holdExpiresAt) {
-    startTimer(timerVal, new Date(state.holdExpiresAt));
-  }
-
-  // Stripe Payment Element
-  const stripeWrap = el('div', { id: 'duj-stripe-element' });
-  app.append(stripeWrap);
-
-  const submitBtn = el('button', { type: 'button', className: 'duj-btn duj-btn--full', textContent: i18n.pay });
-  submitBtn.disabled = true;
-  app.append(submitBtn);
-
-  try {
-    const stripe = await loadStripe();
-    if (!stripe) throw new Error('Stripe.js nelze načíst');
-    state.stripe = stripe;
-
-    const elements = stripe.elements({ clientSecret: state.clientSecret, locale: 'cs' });
-    state.elements = elements;
-
-    const paymentEl = elements.create('payment', { layout: 'tabs' });
-    state.paymentEl = paymentEl;
-    paymentEl.mount(stripeWrap);
-    paymentEl.on('ready', () => { submitBtn.disabled = false; });
-    paymentEl.on('loaderror', () => {
-      errNotice.textContent = i18n.errorGeneric;
-      errNotice.hidden = false;
-    });
-  } catch {
-    errNotice.textContent = i18n.errorGeneric;
-    errNotice.hidden = false;
-  }
-
-  submitBtn.addEventListener('click', async () => {
-    if (!state.stripe || !state.elements) return;
-    submitBtn.disabled = true;
-    errNotice.hidden = true;
-
-    const { error } = await state.stripe.confirmPayment({
-      elements: state.elements,
-      confirmParams: { return_url: window.location.href },
-      redirect: 'if_required',
-    });
-
-    if (error) {
-      errNotice.textContent = error.message ?? i18n.errorGeneric;
-      errNotice.hidden = false;
-      submitBtn.disabled = false;
-    } else {
-      clearInterval(state.timerHandle);
-      pushStep(5);
     }
   });
 
-  app.append(backBtn(3));
+  function showBankDetails(payment) {
+    const div = el('div', { className: 'duj-bank-transfer' });
+    div.append(el('h3', { className: 'duj-bank-transfer__title', textContent: 'Platební údaje' }));
+    const rows = [
+      payment?.iban           ? ['IBAN', payment.iban] : null,
+      payment?.account_number ? ['Číslo účtu', payment.account_number] : null,
+      payment?.variable_symbol ? ['Variabilní symbol', payment.variable_symbol] : null,
+      price != null           ? ['Částka', formatPrice(price)] : null,
+      payment?.hold_expires_at
+        ? ['Uhraďte do', new Date(payment.hold_expires_at).toLocaleString('cs-CZ', { dateStyle: 'short', timeStyle: 'short' })]
+        : payment?.hold_hours ? ['Splatnost', `${payment.hold_hours} hodin od rezervace`] : null,
+    ].filter(Boolean);
+    rows.forEach(([k, v]) => {
+      const row = el('div', { className: 'duj-recap__row' });
+      row.append(el('span', { textContent: k }), el('strong', { textContent: v }));
+      div.append(row);
+    });
+    const note = el('p', { className: 'duj-bank-transfer__note' });
+    note.textContent = 'Po přijetí platby vám zašleme potvrzení e-mailem.';
+    div.append(note);
+    app.append(div);
+  }
+
+  function mountStripeElement() {
+    const stripeWrap = el('div', { id: 'duj-stripe-element' });
+    app.append(stripeWrap);
+
+    const submitBtn = el('button', { type: 'button', className: 'duj-btn duj-btn--full', textContent: i18n.pay ?? 'Zaplatit' });
+    submitBtn.disabled = true;
+    app.append(submitBtn);
+
+    loadStripe().then(stripe => {
+      if (!stripe) throw new Error('Stripe.js nelze načíst');
+      state.stripe = stripe;
+      const elements = stripe.elements({ clientSecret: state.clientSecret, locale: 'cs' });
+      state.elements = elements;
+      const paymentEl = elements.create('payment', { layout: 'tabs' });
+      state.paymentEl = paymentEl;
+      paymentEl.mount(stripeWrap);
+      paymentEl.on('ready', () => { submitBtn.disabled = false; });
+      paymentEl.on('loaderror', () => { errNotice.textContent = i18n.errorGeneric; errNotice.hidden = false; });
+
+      submitBtn.addEventListener('click', async () => {
+        if (!state.stripe || !state.elements) return;
+        submitBtn.disabled = true;
+        errNotice.hidden = true;
+        const { error } = await state.stripe.confirmPayment({
+          elements: state.elements,
+          confirmParams: { return_url: window.location.href },
+          redirect: 'if_required',
+        });
+        if (error) {
+          errNotice.textContent = error.message ?? i18n.errorGeneric;
+          errNotice.hidden = false;
+          submitBtn.disabled = false;
+        } else {
+          clearInterval(state.timerHandle);
+          pushStep(5);
+        }
+      });
+    }).catch(() => {
+      errNotice.textContent = i18n.errorGeneric;
+      errNotice.hidden = false;
+    });
+  }
 }
 
 function startTimer(el, expiresAt) {
