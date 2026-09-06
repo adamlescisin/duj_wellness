@@ -338,11 +338,9 @@ final class BookingsController
 
     private function getClientIp(\WP_REST_Request $request): string
     {
-        $server = $request->get_server_params();
-
         foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $header) {
-            if (!empty($server[$header])) {
-                $ip = trim(explode(',', $server[$header])[0]);
+            if (!empty($_SERVER[$header])) {
+                $ip = trim(explode(',', $_SERVER[$header])[0]);
                 if (filter_var($ip, FILTER_VALIDATE_IP)) {
                     return $ip;
                 }
