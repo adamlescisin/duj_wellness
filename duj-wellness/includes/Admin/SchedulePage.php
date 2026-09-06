@@ -155,6 +155,14 @@ final class SchedulePage
                                 </select>
                             </td>
                         </tr>
+                        <tr id="ov-slots-row" style="display:none">
+                            <th><?= esc_html__('Vlastní sloty', 'duj-wellness') ?></th>
+                            <td>
+                                <div id="ov-slots-list"></div>
+                                <button type="button" id="ov-add-slot" class="button button-small"><?= esc_html__('+ Přidat slot', 'duj-wellness') ?></button>
+                                <p class="description"><?= esc_html__('Přidejte jeden nebo více časových slotů pro tento den.', 'duj-wellness') ?></p>
+                            </td>
+                        </tr>
                         <tr>
                             <th><label for="ov-note"><?= esc_html__('Poznámka', 'duj-wellness') ?></label></th>
                             <td><input type="text" id="ov-note" name="note" placeholder="<?= esc_attr__('Nepovinné', 'duj-wellness') ?>"></td>

@@ -113,19 +113,34 @@ final class AdminScheduleController
             $mode = 'closed';
         }
 
+        $slotsJson = null;
+        if ($mode === 'custom' && !empty($body['slots']) && is_array($body['slots'])) {
+            $slots = [];
+            foreach ($body['slots'] as $s) {
+                $from = sanitize_text_field($s['from'] ?? '');
+                $to   = sanitize_text_field($s['to']   ?? '');
+                if (preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $from) && preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $to)) {
+                    $slots[] = ['from' => $from, 'to' => $to];
+                }
+            }
+            $slotsJson = !empty($slots) ? wp_json_encode($slots) : null;
+        }
+
         $table = $wpdb->prefix . 'duj_schedule_overrides';
+        $note  = sanitize_text_field($body['note'] ?? '');
 
         // Upsert — přepíše existující výjimku pro stejné datum
         $existing = $wpdb->get_var($wpdb->prepare("SELECT id FROM `{$table}` WHERE override_date = %s", $date));
         if ($existing) {
-            $wpdb->update($table, ['mode' => $mode, 'note' => sanitize_text_field($body['note'] ?? '')], ['id' => (int)$existing]);
+            $wpdb->update($table, ['mode' => $mode, 'slots' => $slotsJson, 'note' => $note], ['id' => (int)$existing]);
             return new \WP_REST_Response(['id' => (int)$existing]);
         }
 
         $wpdb->insert($table, [
             'override_date' => $date,
             'mode'          => $mode,
-            'note'          => sanitize_text_field($body['note'] ?? ''),
+            'slots'         => $slotsJson,
+            'note'          => $note,
         ]);
 
         return new \WP_REST_Response(['id' => $wpdb->insert_id], 201);

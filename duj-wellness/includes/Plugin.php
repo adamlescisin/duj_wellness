@@ -187,13 +187,23 @@ final class Plugin
         (new AdminSettingsController())->register();
         (new AdminStatsController())->register();
 
-        // Booking + Stripe-dependent controllers — wrapped so a missing vendor/ doesn't kill all routes.
-        try {
-            $bookingSvc    = $this->buildBookingService($wpdb);
-            $bookingRepo   = new BookingRepository($wpdb);
-            $stripeGateway = StripeGatewayFactory::create($settings);
+        // Booking + notification services — no Stripe dependency.
+        $bookingRepo     = new BookingRepository($wpdb);
+        $bookingSvc      = $this->buildBookingService($wpdb);
+        $notificationSvc = $this->buildNotificationService($wpdb, $settings);
 
-            $notificationSvc = $this->buildNotificationService($wpdb, $settings);
+        (new AdminBookingsController($bookingRepo, $bookingSvc, $notificationSvc))->register();
+
+        (new ActionController(
+            new ActionTokenService($wpdb),
+            $bookingRepo,
+            $bookingSvc,
+            $notificationSvc,
+        ))->register();
+
+        // Stripe-dependent controllers — wrapped so a missing vendor/ doesn't kill all routes.
+        try {
+            $stripeGateway = StripeGatewayFactory::create($settings);
 
             (new BookingsController(
                 $bookingSvc,
@@ -208,18 +218,9 @@ final class Plugin
                 new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc, $notificationSvc),
                 $settings,
             ))->register();
-
-            (new ActionController(
-                new ActionTokenService($wpdb),
-                $bookingRepo,
-                $bookingSvc,
-                $notificationSvc,
-            ))->register();
-
-            (new AdminBookingsController($bookingRepo, $bookingSvc, $notificationSvc))->register();
         } catch (\Throwable $e) {
             if ($this->settings()->debugMode()) {
-                error_log('[duj-wellness] REST route registration failed: ' . $e->getMessage());
+                error_log('[duj-wellness] Stripe route registration failed: ' . $e->getMessage());
             }
         }
     }

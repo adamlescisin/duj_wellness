@@ -20,11 +20,18 @@ final class ScheduleResolver
     ) {}
 
     /**
-     * Vrátí politiku dne pro ubytování.
+     * Vrátí politiku dne.
      * 'ignore' | 'guests_only' | 'closed'
+     *
+     * Kontroluje i schedule override s mode='guests_only'.
      */
     public function resolveDayPolicy(string $date): string
     {
+        $override = $this->scheduleRepo->findOverrideForDate($date);
+        if ($override !== null && $override->mode === 'guests_only') {
+            return 'guests_only';
+        }
+
         $block = $this->accommodationRepo->findBlockForDate($date);
         return $block?->policy ?? 'ignore';
     }
@@ -43,12 +50,15 @@ final class ScheduleResolver
             if ($override->mode === 'closed') {
                 return [];
             }
-            return $this->slotsFromOverrideSlots($override->slots ?? []);
+            if ($override->mode === 'custom') {
+                return $this->slotsFromOverrideSlots($override->slots ?? []);
+            }
+            // 'guests_only' and 'open': fall through to schedule rules below.
         }
 
         // 2. Politika ubytování
-        $policy = $this->resolveDayPolicy($date);
-        if ($policy === 'closed') {
+        $block = $this->accommodationRepo->findBlockForDate($date);
+        if (($block?->policy ?? 'ignore') === 'closed') {
             return [];
         }
 

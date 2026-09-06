@@ -496,16 +496,55 @@ function initSchedulePage() {
         });
     });
 
-    // Add override form
+    // Add override form — custom slots UI
+    const ovMode = document.getElementById('ov-mode');
+    const ovSlotsRow = document.getElementById('ov-slots-row');
+    const ovSlotsList = document.getElementById('ov-slots-list');
+
+    function addSlotRow(from = '16:00', to = '18:00') {
+        const idx = ovSlotsList?.querySelectorAll('.ov-slot-entry').length ?? 0;
+        const div = document.createElement('div');
+        div.className = 'ov-slot-entry';
+        div.style.cssText = 'display:flex;gap:.5rem;align-items:center;margin-bottom:.3rem';
+        div.innerHTML = `<input type="time" name="slot_from[]" value="${from}" required style="width:120px">
+            <span>–</span>
+            <input type="time" name="slot_to[]" value="${to}" required style="width:120px">
+            <button type="button" class="button button-small ov-remove-slot">✕</button>`;
+        div.querySelector('.ov-remove-slot').addEventListener('click', () => div.remove());
+        ovSlotsList?.appendChild(div);
+    }
+
+    ovMode?.addEventListener('change', () => {
+        const isCustom = ovMode.value === 'custom';
+        if (ovSlotsRow) ovSlotsRow.style.display = isCustom ? '' : 'none';
+        if (isCustom && ovSlotsList && !ovSlotsList.querySelector('.ov-slot-entry')) {
+            addSlotRow();
+        }
+    });
+
+    document.getElementById('ov-add-slot')?.addEventListener('click', () => addSlotRow());
+
     const overrideForm = document.getElementById('duj-override-form');
     overrideForm?.addEventListener('submit', async e => {
         e.preventDefault();
         const fd = new FormData(overrideForm);
+        const mode = fd.get('mode');
+
+        const payload = {
+            override_date: fd.get('override_date'),
+            mode,
+            note: fd.get('note') || '',
+        };
+
+        if (mode === 'custom') {
+            const froms = [...overrideForm.querySelectorAll('input[name="slot_from[]"]')].map(i => i.value);
+            const tos   = [...overrideForm.querySelectorAll('input[name="slot_to[]"]')].map(i => i.value);
+            payload.slots = froms.map((f, i) => ({ from: f, to: tos[i] })).filter(s => s.from && s.to);
+            if (!payload.slots.length) { showNotice('Přidejte alespoň jeden slot.', 'error'); return; }
+        }
+
         try {
-            await apiFetch('admin/schedule/overrides', {
-                method: 'POST',
-                body: JSON.stringify({ override_date: fd.get('override_date'), mode: fd.get('mode'), note: fd.get('note') }),
-            });
+            await apiFetch('admin/schedule/overrides', { method: 'POST', body: JSON.stringify(payload) });
             location.reload();
         } catch (err) { showNotice(err.message, 'error'); }
     });
@@ -677,14 +716,15 @@ function initEmailsPage() {
 
     // Send test email
     document.getElementById('duj-tpl-test')?.addEventListener('click', async () => {
+        if (!currentTemplate) return;
         const to = prompt('Testovací e-mail:');
         if (!to) return;
         try {
-            await apiFetch('admin/test-notification', {
+            const res = await apiFetch(`admin/templates/${currentTemplate}/test`, {
                 method: 'POST',
-                body: JSON.stringify({ channel: 'email', template: currentTemplate, to }),
+                body: JSON.stringify({ email: to }),
             });
-            showNotice(`Testovací e-mail odeslán na ${to}.`);
+            showNotice(`Testovací e-mail odeslán na ${res.sent_to ?? to}.`);
         } catch (err) { showNotice(err.message, 'error'); }
     });
 
@@ -709,7 +749,7 @@ function initEmailsPage() {
 function initNotificationsPage() {
     document.getElementById('duj-test-telegram')?.addEventListener('click', async () => {
         try {
-            await apiFetch('admin/test-notification', { method: 'POST', body: JSON.stringify({ channel: 'telegram' }) });
+            await apiFetch('admin/notifications/test', { method: 'POST', body: JSON.stringify({}) });
             showNotice('Telegram test odeslán.');
         } catch (err) { showNotice(err.message, 'error'); }
     });
