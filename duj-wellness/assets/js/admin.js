@@ -282,22 +282,33 @@ async function initCalendarPage() {
         for (let i = 0; i < startEmpty; i++) { const e=document.createElement('div'); e.className='duj-cal-cell empty'; grid.appendChild(e); }
 
         const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        const STATE_LABELS_CS = { available: 'Volno', booked: 'Obsazeno', partial: 'Čeká na platbu', closed: 'Zavřeno' };
+        const RESOURCES = [
+            { key: 'sud',   icon: '🛁', label: 'Sud' },
+            { key: 'sauna', icon: '🔥', label: 'Sauna' },
+        ];
+
         for (let d = 1; d <= last; d++) {
             const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const cell = document.createElement('div');
             cell.className = 'duj-cal-cell';
-            const isPast = new Date(year, month-1, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const cellDate = new Date(year, month-1, d);
+            const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const isPast = cellDate < todayDate;
             if (isPast) cell.classList.add('past');
+            if (dateStr === todayStr) cell.classList.add('today');
 
             const dayInfo = avail[dateStr] ?? {};
-            cell.innerHTML = `<div class="duj-cal-day">${d}</div><div class="duj-cal-dots"></div>`;
-            const dots = cell.querySelector('.duj-cal-dots');
-            ['sud','sauna'].forEach(res => {
-                const state = dayInfo[res] ?? 'closed';
-                const dot = document.createElement('span');
-                dot.className = `duj-dot duj-dot--${state}`;
-                dot.title = res + ': ' + state;
-                dots.appendChild(dot);
+            cell.innerHTML = `<div class="duj-cal-day">${d}</div><div class="duj-cal-resources"></div>`;
+            const resContainer = cell.querySelector('.duj-cal-resources');
+            RESOURCES.forEach(({ key, icon, label }) => {
+                const state = dayInfo[key] ?? 'closed';
+                const chip = document.createElement('div');
+                chip.className = `duj-cal-res duj-cal-res--${state}`;
+                chip.innerHTML = `<span class="duj-cal-res-icon">${icon}</span><span class="duj-cal-res-label">${label}</span>`;
+                chip.title = `${label}: ${STATE_LABELS_CS[state] ?? state}`;
+                resContainer.appendChild(chip);
             });
 
             if (!isPast) {

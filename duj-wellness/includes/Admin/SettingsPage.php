@@ -162,6 +162,16 @@ final class SettingsPage
                 <div class="duj-settings-section">
                     <h3><?= esc_html__('Kontakt a texty', 'duj-wellness') ?></h3>
                     <div class="duj-settings-row">
+                        <label><?= esc_html__('Logo (URL obrázku)', 'duj-wellness') ?></label>
+                        <div>
+                            <input type="url" name="logo_url" value="<?= esc_attr($s->logoUrl()) ?>" placeholder="https://…/logo.png">
+                            <p class="description"><?= esc_html__('URL loga, které se zobrazí v záhlaví e-mailových notifikací. Doporučená výška: 50–80 px.', 'duj-wellness') ?></p>
+                            <?php if ($s->logoUrl() !== ''): ?>
+                                <img src="<?= esc_url($s->logoUrl()) ?>" alt="Logo" style="max-height:60px;margin-top:.5rem;display:block;border:1px solid #dcdcde;border-radius:4px;padding:4px;">
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="duj-settings-row">
                         <label><?= esc_html__('Kontaktní e-mail', 'duj-wellness') ?></label>
                         <div><input type="email" name="contact_email" value="<?= esc_attr($s->contactEmail()) ?>"></div>
                     </div>

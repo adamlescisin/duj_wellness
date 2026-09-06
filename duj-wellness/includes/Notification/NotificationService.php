@@ -42,6 +42,7 @@ final class NotificationService
 
         $data = [
             'site_name'    => $siteName,
+            'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
             'booking_date' => $booking->bookingDate,
             'slot_from'    => $booking->slotFrom,
@@ -76,6 +77,7 @@ final class NotificationService
 
         $data = [
             'site_name'    => $siteName,
+            'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
             'booking_date' => $booking->bookingDate,
             'slot_from'    => $booking->slotFrom,
@@ -106,6 +108,7 @@ final class NotificationService
 
         $data = [
             'site_name'    => $siteName,
+            'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
             'booking_date' => $booking->bookingDate,
             'slot_from'    => $booking->slotFrom,

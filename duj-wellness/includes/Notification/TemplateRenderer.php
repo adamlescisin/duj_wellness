@@ -63,11 +63,13 @@ final class TemplateRenderer
     private function wrapInLayout(string $bodyHtml, array $data): string
     {
         if (!file_exists($this->layoutPath)) {
-            // Základní fallback layout
             return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $bodyHtml . '</body></html>';
         }
 
         $siteName = $data['site_name'] ?? 'Domeček u Josefa';
+        $logoUrl  = isset($data['logo_url']) && $data['logo_url'] !== ''
+            ? (function_exists('esc_url') ? esc_url($data['logo_url']) : htmlspecialchars($data['logo_url'], ENT_QUOTES, 'UTF-8'))
+            : '';
         $content  = $bodyHtml;
 
         ob_start();

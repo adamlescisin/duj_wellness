@@ -55,6 +55,7 @@ final class AdminSettingsController
             'guests_only_message'            => $s->guestsOnlyMessage(),
             'gdpr_retention_months'          => $s->gdprRetentionMonths(),
             'debug_mode'                     => $s->debugMode(),
+            'logo_url'                       => $s->logoUrl(),
         ]);
     }
 
@@ -87,6 +88,7 @@ final class AdminSettingsController
             'guests_only_message'            => 'sanitize_textarea_field',
             'gdpr_retention_months'          => 'intval',
             'debug_mode'                     => 'boolval',
+            'logo_url'                       => 'esc_url_raw',
         ];
 
         $enum = [

@@ -1,12 +1,22 @@
 <p>Dobrý den,</p>
-<p>Vaše rezervace prostoru <strong>{{resource}}</strong> na den <strong>{{booking_date}}</strong>
-({{slot_from}}–{{slot_to}}) byla přijata a čeká na potvrzení.</p>
-<p>Číslo rezervace: <strong>{{reference}}</strong></p>
-<p>Pro potvrzení nebo zrušení rezervace klikněte na tlačítko níže:</p>
-<p>
-  <a href="{{confirm_url}}" class="btn">✅ Potvrdit rezervaci</a>
-  <a href="{{cancel_url}}" class="btn btn-secondary">❌ Zrušit rezervaci</a>
-</p>
-<p>V příloze najdete soubor .ics pro přidání termínu do vašeho kalendáře.</p>
-<p>Pokud jste rezervaci neprovedli vy, ignorujte tento e-mail.</p>
-<p>S pozdravem,<br>{{site_name}}</p>
+<p>přijali jsme vaši rezervaci a čeká na potvrzení od naší strany. Níže jsou podrobnosti:</p>
+
+<div class="info-box">
+  <strong>Referenční číslo:</strong> {{reference}}<br>
+  <strong>Datum:</strong> {{booking_date}}<br>
+  <strong>Čas:</strong> {{slot_from}}–{{slot_to}}<br>
+  <strong>Služba:</strong> {{resource}}
+</div>
+
+<p>Rezervaci obvykle potvrzujeme do 24 hodin. Po potvrzení obdržíte e-mail s potvrzením.</p>
+<p>Pokud si přejete rezervaci zrušit, klikněte na tlačítko níže:</p>
+
+<div class="btn-wrap">
+  <a href="{{confirm_url}}" class="btn btn-primary">✅ Potvrdit rezervaci</a>
+  <a href="{{cancel_url}}" class="btn btn-danger">❌ Zrušit rezervaci</a>
+</div>
+
+<p>V příloze najdete soubor <em>.ics</em> pro přidání termínu do vašeho kalendáře.</p>
+<hr>
+<p style="font-size:13px;color:#7a6559">Pokud jste tuto rezervaci neprovedli vy, ignorujte prosím tento e-mail.</p>
+<p>S pozdravem,<br><strong>{{site_name}}</strong></p>

@@ -253,6 +253,13 @@ final class Settings implements SettingsInterface
         return (array) $this->get('notify_channels', ['email']);
     }
 
+    // ── Logo ────────────────────────────────────────────────────────────────────
+
+    public function logoUrl(): string
+    {
+        return (string) $this->get('logo_url', '');
+    }
+
     // ── Vzhled ────────────────────────────────────────────────────────────────
 
     public function accentColor(): string

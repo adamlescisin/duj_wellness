@@ -1,6 +1,13 @@
 <p>Dobrý den,</p>
-<p>Vaše rezervace prostoru <strong>{{resource}}</strong> na den <strong>{{booking_date}}</strong>
-({{slot_from}}–{{slot_to}}) byla <strong>zrušena</strong>.</p>
-<p>Číslo rezervace: <strong>{{reference}}</strong></p>
-<p>Pokud si přejete provést novou rezervaci, navštivte naše webové stránky.</p>
-<p>S pozdravem,<br>{{site_name}}</p>
+<p>informujeme vás, že vaše rezervace byla <strong>zrušena</strong>.</p>
+
+<div class="info-box">
+  <strong>Referenční číslo:</strong> {{reference}}<br>
+  <strong>Datum:</strong> {{booking_date}}<br>
+  <strong>Čas:</strong> {{slot_from}}–{{slot_to}}<br>
+  <strong>Služba:</strong> {{resource}}
+</div>
+
+<p>Pokud jste o zrušení nežádali nebo chcete provést novou rezervaci, kontaktujte nás.</p>
+<hr>
+<p>S pozdravem,<br><strong>{{site_name}}</strong></p>

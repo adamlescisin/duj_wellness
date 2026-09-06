@@ -23,17 +23,14 @@ final class CalendarPage
             <h1><?= esc_html__('Kalendář', 'duj-wellness') ?></h1>
             <div class="duj-notice-area"></div>
 
-            <p>
-                <span class="duj-dot duj-dot--available" style="vertical-align:middle"></span> <?= esc_html__('Volno', 'duj-wellness') ?>
-                &nbsp;
-                <span class="duj-dot duj-dot--partial" style="vertical-align:middle"></span> <?= esc_html__('Částečně obsazeno', 'duj-wellness') ?>
-                &nbsp;
-                <span class="duj-dot duj-dot--booked" style="vertical-align:middle"></span> <?= esc_html__('Obsazeno', 'duj-wellness') ?>
-                &nbsp;
-                <span class="duj-dot duj-dot--closed" style="vertical-align:middle"></span> <?= esc_html__('Zavřeno', 'duj-wellness') ?>
-                &nbsp;
-                <span class="duj-dot duj-dot--reserved" style="vertical-align:middle"></span> <?= esc_html__('Vyhrazeno', 'duj-wellness') ?>
-            </p>
+            <div class="duj-cal-legend">
+                <strong><?= esc_html__('Legenda:', 'duj-wellness') ?></strong>
+                <span class="duj-cal-legend-item"><span class="duj-dot duj-dot--available"></span><?= esc_html__('Volno', 'duj-wellness') ?></span>
+                <span class="duj-cal-legend-item"><span class="duj-dot duj-dot--partial"></span><?= esc_html__('Čeká na platbu', 'duj-wellness') ?></span>
+                <span class="duj-cal-legend-item"><span class="duj-dot duj-dot--booked"></span><?= esc_html__('Obsazeno', 'duj-wellness') ?></span>
+                <span class="duj-cal-legend-item"><span class="duj-dot duj-dot--closed"></span><?= esc_html__('Zavřeno / bez rozvrhu', 'duj-wellness') ?></span>
+                <span style="color:#50575e;font-size:.82rem">🛁 = Sud &nbsp; 🔥 = Sauna</span>
+            </div>
 
             <div id="duj-admin-calendar"
                 data-year="<?= esc_attr((string) $year) ?>"

@@ -232,13 +232,66 @@ final class AdminBookingsController
     public function calendar(\WP_REST_Request $req): \WP_REST_Response
     {
         global $wpdb;
-        $from  = sanitize_text_field($req->get_param('from') ?? date('Y-m-01'));
-        $to    = sanitize_text_field($req->get_param('to')   ?? date('Y-m-t'));
-        $table = $wpdb->prefix . 'duj_bookings';
+        $from = sanitize_text_field($req->get_param('from') ?? date('Y-m-01'));
+        $to   = sanitize_text_field($req->get_param('to')   ?? date('Y-m-t'));
 
+        // 1. Fetch schedule overrides in range — one query.
+        $overridesTable = $wpdb->prefix . 'duj_schedule_overrides';
+        $overrideRows   = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT override_date, mode FROM `{$overridesTable}` WHERE override_date BETWEEN %s AND %s",
+                $from, $to
+            ),
+            ARRAY_A
+        ) ?? [];
+        $overrides = [];
+        foreach ($overrideRows as $ov) {
+            $overrides[$ov['override_date']] = $ov['mode'];
+        }
+
+        // 2. Fetch distinct weekdays that have active schedule rules overlapping this range.
+        // weekday uses ISO 8601: 1=Monday … 7=Sunday (matches ScheduleResolver).
+        $rulesTable  = $wpdb->prefix . 'duj_schedule_rules';
+        $ruleRows    = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DISTINCT weekday FROM `{$rulesTable}`
+                 WHERE is_active = 1
+                   AND (valid_from IS NULL OR valid_from <= %s)
+                   AND (valid_to   IS NULL OR valid_to   >= %s)",
+                $to, $from
+            ),
+            ARRAY_A
+        ) ?? [];
+        $openWeekdays = array_flip(array_column($ruleRows, 'weekday'));
+
+        // 3. Build base availability for every day in range.
+        $byDate  = [];
+        $tz      = new \DateTimeZone('Europe/Prague');
+        $current = new \DateTimeImmutable($from, $tz);
+        $end     = new \DateTimeImmutable($to,   $tz);
+
+        while ($current <= $end) {
+            $dateStr = $current->format('Y-m-d');
+            $isoDay  = (int) $current->format('N'); // 1=Mon … 7=Sun
+
+            if (isset($overrides[$dateStr])) {
+                $open = ($overrides[$dateStr] !== 'closed');
+            } else {
+                $open = isset($openWeekdays[$isoDay]);
+            }
+
+            if ($open) {
+                $byDate[$dateStr] = ['sud' => 'available', 'sauna' => 'available'];
+            }
+
+            $current = $current->modify('+1 day');
+        }
+
+        // 4. Overlay booking statuses.
+        $bookingTable = $wpdb->prefix . 'duj_bookings';
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT booking_date, combo_key, status FROM `{$table}`
+                "SELECT booking_date, combo_key, status FROM `{$bookingTable}`
                  WHERE booking_date BETWEEN %s AND %s
                    AND status NOT IN ('cancelled','expired','rejected')
                  ORDER BY booking_date ASC",
@@ -247,15 +300,17 @@ final class AdminBookingsController
             ARRAY_A
         ) ?? [];
 
-        $byDate = [];
         foreach ($rows as $r) {
             $d = $r['booking_date'];
             if (!isset($byDate[$d])) {
+                // Booking on an otherwise-closed day — show it.
                 $byDate[$d] = ['sud' => 'available', 'sauna' => 'available'];
             }
             foreach (['sud', 'sauna'] as $res) {
                 if (str_contains($r['combo_key'], $res)) {
-                    $byDate[$d][$res] = in_array($r['status'], ['confirmed','awaiting_confirmation'], true) ? 'booked' : 'partial';
+                    $byDate[$d][$res] = in_array($r['status'], ['confirmed', 'awaiting_confirmation'], true)
+                        ? 'booked'
+                        : 'partial';
                 }
             }
         }
