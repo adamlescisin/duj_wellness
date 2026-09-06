@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 defined('ABSPATH') || exit;
 
-define('DUJ_WELLNESS_VERSION', '0.1.0');
+define('DUJ_WELLNESS_VERSION', '0.1.1');
 define('DUJ_WELLNESS_FILE', __FILE__);
 define('DUJ_WELLNESS_DIR', plugin_dir_path(__FILE__));
 define('DUJ_WELLNESS_URL', plugin_dir_url(__FILE__));
