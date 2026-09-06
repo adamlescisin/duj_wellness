@@ -182,6 +182,11 @@ final class BookingsController
                 $freshBooking = $this->bookingRepo?->findById($result->bookingId);
                 if ($freshBooking !== null) {
                     $this->notificationService->sendAdminNewBooking($freshBooking);
+                    // For Stripe card payments the webhook sends awaiting_confirmation once the card is authorized.
+                    // For bank_transfer / qr_checkout there is no webhook, so send it immediately.
+                    if ($paymentMethod !== 'stripe_card') {
+                        $this->notificationService->sendAwaitingConfirmation($freshBooking);
+                    }
                     if ($paymentMethod === 'bank_transfer' && isset($responseData['payment'])) {
                         $this->notificationService->sendBankTransferInstructions($freshBooking, $responseData['payment']);
                     }
