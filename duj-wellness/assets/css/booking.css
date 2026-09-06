@@ -797,3 +797,38 @@
     align-items: start;
   }
 }
+
+/* ─── Bank transfer QR block ─── */
+:where(.duj-bank-transfer) {
+  margin-top: 1.25rem;
+}
+
+:where(.duj-bank-transfer__title) {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+:where(.duj-bank-transfer__qr) {
+  text-align: center;
+  margin: 1.5rem 0 1rem;
+}
+
+:where(.duj-bank-transfer__qr img) {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+}
+
+:where(.duj-bank-transfer__qr-note) {
+  font-size: 0.8rem;
+  color: var(--duj-muted);
+  margin-top: 0.5rem;
+}
+
+:where(.duj-bank-transfer__note) {
+  font-size: 0.875rem;
+  color: var(--duj-muted);
+  margin-top: 1rem;
+}

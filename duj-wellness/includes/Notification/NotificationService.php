@@ -33,9 +33,9 @@ final class NotificationService
         $confirmToken = $this->tokenService->create($booking->id, 'confirm');
         $cancelToken  = $this->tokenService->create($booking->id, 'cancel');
 
-        $baseUrl    = function_exists('home_url') ? home_url('/') : 'https://example.com/';
-        $confirmUrl = $this->buildActionUrl($baseUrl, 'confirm', $confirmToken);
-        $cancelUrl  = $this->buildActionUrl($baseUrl, 'cancel', $cancelToken);
+        $actionBase = $this->restActionUrl();
+        $confirmUrl = $this->buildActionUrl($actionBase, 'confirm', $confirmToken);
+        $cancelUrl  = $this->buildActionUrl($actionBase, 'cancel', $cancelToken);
 
         $siteName = function_exists('get_option') ? (string) get_option('blogname', 'Domeček u Josefa') : 'Domeček u Josefa';
         $siteUrl  = function_exists('home_url') ? home_url('/') : 'https://example.com/';
@@ -136,9 +136,9 @@ final class NotificationService
      */
     public function sendAdminNewBooking(BookingRow $booking): void
     {
-        $baseUrl    = function_exists('home_url') ? home_url('/') : 'https://example.com/';
-        $confirmUrl = $this->buildActionUrl($baseUrl, 'confirm', $this->tokenService->create($booking->id, 'confirm'));
-        $rejectUrl  = $this->buildActionUrl($baseUrl, 'reject', $this->tokenService->create($booking->id, 'reject'));
+        $actionBase = $this->restActionUrl();
+        $confirmUrl = $this->buildActionUrl($actionBase, 'confirm', $this->tokenService->create($booking->id, 'confirm'));
+        $rejectUrl  = $this->buildActionUrl($actionBase, 'reject', $this->tokenService->create($booking->id, 'reject'));
 
         $this->sendTelegramNewBooking($booking, $confirmUrl, $rejectUrl);
         $this->sendAdminEmailNewBooking($booking, $confirmUrl, $rejectUrl);
@@ -359,6 +359,13 @@ final class NotificationService
             . '</div>';
 
         return str_replace('{{qr_block}}', $block, $template);
+    }
+
+    private function restActionUrl(): string
+    {
+        return function_exists('rest_url')
+            ? rest_url('duj/v1/action')
+            : 'https://example.com/wp-json/duj/v1/action';
     }
 
     private function buildActionUrl(string $base, string $action, string $token): string

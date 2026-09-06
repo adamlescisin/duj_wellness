@@ -757,6 +757,15 @@ async function renderPayment() {
       row.append(el('span', { textContent: k }), el('strong', { textContent: v }));
       div.append(row);
     });
+
+    if (payment?.qr_uri) {
+      const qrWrap = el('div', { className: 'duj-bank-transfer__qr' });
+      const qrImg  = el('img', { src: payment.qr_uri, alt: 'QR platba', width: 220, height: 220 });
+      const qrNote = el('p', { className: 'duj-bank-transfer__qr-note', textContent: 'Naskenujte kód svou bankovní aplikací (QR Platba)' });
+      qrWrap.append(qrImg, qrNote);
+      div.append(qrWrap);
+    }
+
     const note = el('p', { className: 'duj-bank-transfer__note' });
     note.textContent = 'Po přijetí platby vám zašleme potvrzení e-mailem.';
     div.append(note);

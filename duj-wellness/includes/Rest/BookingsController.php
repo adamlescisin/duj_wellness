@@ -295,13 +295,15 @@ final class BookingsController
         if ($booking !== null && ($iban !== '' || $number !== '')) {
             $ibanForQr = $iban !== '' ? $iban : '';
             if ($ibanForQr !== '') {
-                $spd = (new QrPaymentGenerator())->generate(
+                $qrGen = new QrPaymentGenerator();
+                $spd   = $qrGen->generate(
                     $ibanForQr,
                     $booking->amountMinor,
                     $reference,
                     'Wellness rezervace ' . $reference,
                 );
-                $qrData['spd'] = $spd;
+                $qrData['spd']    = $spd;
+                $qrData['qr_uri'] = $qrGen->toDataUri($spd);
             }
         }
 
