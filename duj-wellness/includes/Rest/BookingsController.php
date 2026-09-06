@@ -83,7 +83,14 @@ final class BookingsController
         }
 
         // Rozlišení cenové hladiny z kódu
-        $resolution = $this->tierResolver->resolve($accessCode, $date);
+        try {
+            $resolution = $this->tierResolver->resolve($accessCode, $date);
+        } catch (\RuntimeException) {
+            return new \WP_REST_Response(
+                ['code' => 'service_unavailable', 'message' => __('Rezervační systém není nakonfigurován. Kontaktujte provozovatele.', 'duj-wellness')],
+                503
+            );
+        }
         if ($resolution->invalidCode) {
             return new \WP_REST_Response(
                 ['code' => 'invalid_code', 'message' => __('Kód neplatí.', 'duj-wellness')],

@@ -192,42 +192,46 @@ final class Plugin
         (new AdminStatsController())->register();
 
         // Booking + notification services — no Stripe dependency.
-        $bookingRepo     = new BookingRepository($wpdb);
-        $bookingSvc      = $this->buildBookingService($wpdb);
-        $notificationSvc = $this->buildNotificationService($wpdb, $settings);
-
-        (new AdminBookingsController($bookingRepo, $bookingSvc, $notificationSvc))->register();
-
-        (new ActionController(
-            new ActionTokenService($wpdb),
-            $bookingRepo,
-            $bookingSvc,
-            $notificationSvc,
-        ))->register();
-
-        // BookingsController is always registered; Stripe gateway is optional.
-        $stripeGateway = null;
         try {
-            $stripeGateway = StripeGatewayFactory::create($settings);
-        } catch (\Throwable $e) {
-            error_log('[duj-wellness] Stripe init failed — payment via Stripe unavailable: ' . $e->getMessage());
-        }
+            $bookingRepo     = new BookingRepository($wpdb);
+            $bookingSvc      = $this->buildBookingService($wpdb);
+            $notificationSvc = $this->buildNotificationService($wpdb, $settings);
 
-        (new BookingsController(
-            $bookingSvc,
-            $tierResolver,
-            new RateLimiter(maxAttempts: 20),
-            $stripeGateway,
-            $settings,
-            $bookingRepo,
-        ))->register();
+            (new AdminBookingsController($bookingRepo, $bookingSvc, $notificationSvc))->register();
 
-        // Stripe webhook controller — only when Stripe is available.
-        if ($stripeGateway !== null) {
-            (new WebhooksController(
-                new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc, $notificationSvc),
-                $settings,
+            (new ActionController(
+                new ActionTokenService($wpdb),
+                $bookingRepo,
+                $bookingSvc,
+                $notificationSvc,
             ))->register();
+
+            // BookingsController is always registered; Stripe gateway is optional.
+            $stripeGateway = null;
+            try {
+                $stripeGateway = StripeGatewayFactory::create($settings);
+            } catch (\Throwable $e) {
+                error_log('[duj-wellness] Stripe init failed — payment via Stripe unavailable: ' . $e->getMessage());
+            }
+
+            (new BookingsController(
+                $bookingSvc,
+                $tierResolver,
+                new RateLimiter(maxAttempts: 20),
+                $stripeGateway,
+                $settings,
+                $bookingRepo,
+            ))->register();
+
+            // Stripe webhook controller — only when Stripe is available.
+            if ($stripeGateway !== null) {
+                (new WebhooksController(
+                    new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc, $notificationSvc),
+                    $settings,
+                ))->register();
+            }
+        } catch (\Throwable $e) {
+            error_log('[duj-wellness] registerRestRoutes failed (booking/action/webhook controllers not registered): ' . $e->getMessage());
         }
     }
 
