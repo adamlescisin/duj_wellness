@@ -40,6 +40,10 @@ final class StripeGatewayFactory
 
     public static function resolvePublishableKey(SettingsInterface $settings): string
     {
+        if ($settings instanceof \Duj\Wellness\Support\Settings) {
+            return $settings->stripePublishableKey();
+        }
+
         if (defined('DUJ_STRIPE_PUBLISHABLE_KEY') && is_string(constant('DUJ_STRIPE_PUBLISHABLE_KEY'))) {
             return constant('DUJ_STRIPE_PUBLISHABLE_KEY');
         }

@@ -42,6 +42,19 @@ final class BookingsController
 
     public function create(\WP_REST_Request $request): \WP_REST_Response
     {
+        try {
+            return $this->doCreate($request);
+        } catch (\Throwable $e) {
+            error_log('[duj-wellness] BookingsController::create uncaught: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            return new \WP_REST_Response(
+                ['code' => 'server_error', 'message' => __('Nastala neočekávaná chyba. Zkuste to prosím znovu.', 'duj-wellness')],
+                500
+            );
+        }
+    }
+
+    private function doCreate(\WP_REST_Request $request): \WP_REST_Response
+    {
         $ip = $this->getClientIp($request);
 
         if (!$this->rateLimiter->check('bookings/create', $ip)) {
