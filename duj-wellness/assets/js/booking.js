@@ -214,6 +214,18 @@ function buildPricingHeader() {
       state.codeValid = true;
       feedback.textContent = i18n.validCode;
       feedback.className = 'duj-code-feedback duj-code-feedback--ok';
+      // If a slot is already selected, re-fetch availability with the new code
+      // so state.prices reflects the correct tier (e.g. guest vs public).
+      if (state.selectedDate && state.selectedSlot) {
+        try {
+          const avData = await apiFetch(
+            `availability?from=${state.selectedDate}&to=${state.selectedDate}&code=${encodeURIComponent(state.accessCode)}`
+          );
+          const dayInfo = (avData.days ?? []).find(d => d.date === state.selectedDate);
+          const slot = (dayInfo?.slots ?? []).find(s => s.from === state.selectedSlot.from);
+          if (slot?.prices) state.prices = slot.prices;
+        } catch { /* leave existing prices */ }
+      }
     } catch {
       state.codeValid = false;
       feedback.textContent = i18n.invalidCode;
