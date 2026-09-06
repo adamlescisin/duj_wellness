@@ -116,6 +116,12 @@ final class DeployController
             'body'      => [],
         ]);
 
+        // Clear OPcache now in case the previous (sync) deploy wrote files but
+        // OPcache was not flushed, causing stale bytecode to be served.
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+
         return new \WP_REST_Response([
             'accepted' => true,
             'sha'      => $shortSha,

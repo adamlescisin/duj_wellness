@@ -41,6 +41,7 @@ final class DeployJob
             error_log('[duj-wellness] Deploy failed: ' . json_encode($result));
         } else {
             error_log('[duj-wellness] Auto-deploy successful: ' . $repo . '@' . substr($sha, 0, 7) . ' (' . ($result['files'] ?? 0) . ' files)');
+            self::clearOpcache($dir);
         }
     }
 
@@ -155,5 +156,28 @@ final class DeployJob
         }
 
         return ['success' => true, 'files' => $fileCount];
+    }
+
+    /**
+     * Clears PHP OPcache for the plugin directory after a successful deploy so
+     * updated files are not served from stale bytecode.
+     */
+    public static function clearOpcache(string $pluginDir): void
+    {
+        if (!function_exists('opcache_invalidate')) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($pluginDir, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->isFile() && $file->getExtension() === 'php') {
+                opcache_invalidate($file->getPathname(), true);
+            }
+        }
+
+        error_log('[duj-wellness] OPcache invalidated for ' . $pluginDir);
     }
 }
