@@ -7,11 +7,8 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Stripe\\' => array($vendorDir . '/stripe/stripe-php/lib'),
-    'PhpParser\\' => array($vendorDir . '/nikic/php-parser/lib/PhpParser'),
     'Endroid\\QrCode\\' => array($vendorDir . '/endroid/qr-code/src'),
-    'Duj\\Wellness\\Tests\\' => array($baseDir . '/tests'),
     'Duj\\Wellness\\' => array($baseDir . '/includes'),
-    'DeepCopy\\' => array($vendorDir . '/myclabs/deep-copy/src/DeepCopy'),
     'DASPRiD\\Enum\\' => array($vendorDir . '/dasprid/enum/src'),
     'BaconQrCode\\' => array($vendorDir . '/bacon/bacon-qr-code/src'),
 );
