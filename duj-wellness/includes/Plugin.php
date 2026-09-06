@@ -178,35 +178,7 @@ final class Plugin
         (new AvailabilityController($availSvc, $tierResolver, $settings))->register();
         (new AccessCodeController($codeSvc, new RateLimiter()))->register();
 
-        $bookingSvc    = $this->buildBookingService($wpdb);
-        $bookingRepo   = new BookingRepository($wpdb);
-        $stripeGateway = StripeGatewayFactory::create($settings);
-
-        $notificationSvc = $this->buildNotificationService($wpdb, $settings);
-
-        (new BookingsController(
-            $bookingSvc,
-            $tierResolver,
-            new RateLimiter(maxAttempts: 20),
-            $stripeGateway,
-            $settings,
-            $bookingRepo,
-        ))->register();
-
-        (new WebhooksController(
-            new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc, $notificationSvc),
-            $settings,
-        ))->register();
-
-        (new ActionController(
-            new ActionTokenService($wpdb),
-            $bookingRepo,
-            $bookingSvc,
-            $notificationSvc,
-        ))->register();
-
-        // Admin REST controllers
-        (new AdminBookingsController($bookingRepo, $bookingSvc, $notificationSvc))->register();
+        // Admin-only controllers — registered unconditionally so they work even without Stripe.
         (new AdminScheduleController())->register();
         (new AdminPricingController())->register();
         (new AdminAccommodationController())->register();
@@ -214,6 +186,42 @@ final class Plugin
         (new AdminNotificationsController())->register();
         (new AdminSettingsController())->register();
         (new AdminStatsController())->register();
+
+        // Booking + Stripe-dependent controllers — wrapped so a missing vendor/ doesn't kill all routes.
+        try {
+            $bookingSvc    = $this->buildBookingService($wpdb);
+            $bookingRepo   = new BookingRepository($wpdb);
+            $stripeGateway = StripeGatewayFactory::create($settings);
+
+            $notificationSvc = $this->buildNotificationService($wpdb, $settings);
+
+            (new BookingsController(
+                $bookingSvc,
+                $tierResolver,
+                new RateLimiter(maxAttempts: 20),
+                $stripeGateway,
+                $settings,
+                $bookingRepo,
+            ))->register();
+
+            (new WebhooksController(
+                new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc, $notificationSvc),
+                $settings,
+            ))->register();
+
+            (new ActionController(
+                new ActionTokenService($wpdb),
+                $bookingRepo,
+                $bookingSvc,
+                $notificationSvc,
+            ))->register();
+
+            (new AdminBookingsController($bookingRepo, $bookingSvc, $notificationSvc))->register();
+        } catch (\Throwable $e) {
+            if ($this->settings()->debugMode()) {
+                error_log('[duj-wellness] REST route registration failed: ' . $e->getMessage());
+            }
+        }
     }
 
     private function buildBookingService(\wpdb $wpdb): BookingService

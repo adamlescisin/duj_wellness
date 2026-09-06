@@ -645,6 +645,8 @@ function initEmailsPage() {
             const res = await apiFetch(`admin/templates/${name}`);
             document.getElementById('duj-tpl-subject').value = res.subject ?? '';
             document.getElementById('duj-tpl-body').value    = res.body ?? '';
+        } catch (err) {
+            showNotice('Nepodařilo se načíst šablonu: ' + err.message, 'error');
         } finally { area.classList.remove('duj-loading'); }
     }
 
