@@ -347,8 +347,20 @@
   background: color-mix(in srgb, var(--duj-accent) 8%, var(--duj-surface));
 }
 
+/* Available slot cards — subtle green tint, matching service cards */
+:where(.duj-slot-card:not(.duj-slot-card--unavailable)) {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.duj-wellness .duj-slot-card:not(.duj-slot-card--unavailable) {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
 :where(.duj-slot-card--unavailable) {
-  opacity: .5;
+  background: #fff5f5;
+  border-color: #fecaca;
+  opacity: .6;
   cursor: default;
   pointer-events: none;
 }
