@@ -54,8 +54,12 @@ final class AccessCodeController
         try {
             $resolution = $this->accessCodeService->validate($code, $date);
         } catch (\Throwable $e) {
-            error_log('[duj-wellness] AccessCodeController error: ' . $e->getMessage());
-            return new \WP_REST_Response(['valid' => false, 'message' => __('Kód neplatí.', 'duj-wellness')], 200);
+            error_log('[duj-wellness] AccessCodeController error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            return new \WP_REST_Response([
+                'valid'   => false,
+                'message' => __('Kód neplatí.', 'duj-wellness'),
+                '_debug'  => $e->getMessage() . ' in ' . basename($e->getFile()) . ':' . $e->getLine(),
+            ], 200);
         }
 
         if ($resolution->invalidCode) {

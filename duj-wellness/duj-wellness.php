@@ -3,7 +3,7 @@
  * Plugin Name:       Duj Wellness — Rezervační systém
  * Plugin URI:        https://domecekujosefa.cz
  * Description:       Rezervace koupacího sudu a sauny s online platbou přes Stripe.
- * Version:           0.2.0
+ * Version:           0.2.1
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Domeček u Josefa
@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 defined('ABSPATH') || exit;
 
-define('DUJ_WELLNESS_VERSION', '0.2.0');
+define('DUJ_WELLNESS_VERSION', '0.2.1');
 define('DUJ_WELLNESS_FILE', __FILE__);
 define('DUJ_WELLNESS_DIR', plugin_dir_path(__FILE__));
 define('DUJ_WELLNESS_URL', plugin_dir_url(__FILE__));
@@ -71,13 +71,51 @@ use Duj\Wellness\Plugin;
 register_activation_hook(__FILE__, [Activator::class, 'activate']);
 register_deactivation_hook(__FILE__, [Deactivator::class, 'deactivate']);
 
-// Ensure the deploy webhook callback runs to completion even when the GitHub
-// client disconnects after its ~10 s timeout, so all plugin files are extracted.
+// Inline REST handlers — live in this file so they survive partial deploys.
 add_filter('rest_pre_dispatch', static function ($result, $server, \WP_REST_Request $request) {
-    if ($request->get_route() === '/duj/v1/deploy') {
+    $route = $request->get_route();
+
+    // Keep PHP alive through the full deploy even after GitHub disconnects.
+    if ($route === '/duj/v1/deploy') {
         ignore_user_abort(true);
         set_time_limit(300);
+        return $result;
     }
+
+    // Access-code validation: inline implementation so it works even when
+    // includes/Domain/TierResolver.php on disk is stale or broken.
+    if ($route === '/duj/v1/access-codes/validate' && $request->get_method() === 'GET') {
+        global $wpdb;
+        $code = sanitize_text_field((string) ($request->get_param('code') ?? ''));
+        if ($code === '') {
+            return new \WP_REST_Response(['valid' => false, 'message' => 'Kód neplatí.'], 200);
+        }
+        $date  = sanitize_text_field((string) ($request->get_param('date') ?? gmdate('Y-m-d')));
+        $table = $wpdb->prefix . 'duj_access_codes';
+        $row   = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT tier_slug FROM `{$table}`
+                 WHERE code = %s AND is_active = 1
+                   AND (valid_from IS NULL OR valid_from <= %s)
+                   AND (valid_to   IS NULL OR valid_to   >= %s)
+                   AND (max_uses   IS NULL OR used_count < max_uses)
+                 LIMIT 1",
+                strtoupper($code),
+                $date,
+                $date
+            ),
+            ARRAY_A
+        );
+        if (!$row) {
+            return new \WP_REST_Response(['valid' => false, 'message' => 'Kód neplatí.'], 200);
+        }
+        return new \WP_REST_Response([
+            'valid'      => true,
+            'tier'       => (string) $row['tier_slug'],
+            'valid_code' => strtoupper($code),
+        ], 200);
+    }
+
     return $result;
 }, 10, 3);
 
