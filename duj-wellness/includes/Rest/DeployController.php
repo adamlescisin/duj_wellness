@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Duj\Wellness\Rest;
 
-use Duj\Wellness\Cron\DeployJob;
 use Duj\Wellness\Support\Settings;
 
 /**
@@ -106,7 +105,7 @@ final class DeployController
             'token' => $githubToken,
         ], 600); // 10-minute TTL — plenty of time for cron to pick it up.
 
-        wp_schedule_single_event(time(), DeployJob::HOOK, [$transientKey]);
+        wp_schedule_single_event(time(), 'duj_wellness_deploy_execute', [$transientKey]);
 
         // Kick WP-Cron asynchronously (fire-and-forget) so the job runs immediately
         // rather than waiting for the next organic page load.
