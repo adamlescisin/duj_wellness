@@ -27,7 +27,7 @@ final class PricingPage
             ARRAY_A
         ) ?? [];
 
-        $combos     = ['sud' => 'Koupací sud', 'sauna' => 'Sauna', 'sud+sauna' => 'Sud + sauna'];
+        $combos     = ['sud' => 'Koupací sud', 'sauna' => 'Sauna', 'sauna+sud' => 'Sauna + koupací sud'];
         $priceIndex = [];
         foreach ($prices as $p) {
             $priceIndex[$p['tier_slug'] . '|' . $p['combo_key']] = $p;

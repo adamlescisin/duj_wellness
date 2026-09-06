@@ -47,6 +47,10 @@ final class AdminBookingsController
         register_rest_route('duj/v1', '/admin/calendar/day', [
             ['methods' => 'GET', 'callback' => [$this, 'calendarDay'], 'permission_callback' => [$this, 'can']],
         ]);
+
+        register_rest_route('duj/v1', '/admin/bookings/manual', [
+            ['methods' => 'POST', 'callback' => [$this, 'createManual'], 'permission_callback' => [$this, 'can']],
+        ]);
     }
 
     public function can(): bool
@@ -277,6 +281,68 @@ final class AdminBookingsController
         ) ?? [];
 
         return new \WP_REST_Response(['bookings' => $rows]);
+    }
+
+    public function createManual(\WP_REST_Request $req): \WP_REST_Response|\WP_Error
+    {
+        global $wpdb;
+        $body = $req->get_json_params();
+
+        $date      = sanitize_text_field($body['booking_date'] ?? '');
+        $slotFrom  = sanitize_text_field($body['slot_from']    ?? '');
+        $slotTo    = sanitize_text_field($body['slot_to']      ?? '');
+        $comboKey  = sanitize_key($body['combo_key']           ?? 'sud');
+        $name      = sanitize_text_field($body['customer_name']  ?? '');
+        $email     = sanitize_email($body['customer_email']      ?? '');
+        $phone     = sanitize_text_field($body['customer_phone'] ?? '');
+        $guests    = max(1, (int)($body['guests']               ?? 1));
+        $note      = sanitize_text_field($body['customer_note']  ?? '');
+        $adminNote = sanitize_text_field($body['admin_note']     ?? '');
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return new \WP_Error('invalid_date', 'Neplatné datum.', ['status' => 400]);
+        }
+        if (!preg_match('/^\d{2}:\d{2}/', $slotFrom) || !preg_match('/^\d{2}:\d{2}/', $slotTo)) {
+            return new \WP_Error('invalid_time', 'Neplatný čas.', ['status' => 400]);
+        }
+        if (!in_array($comboKey, ['sud', 'sauna', 'sauna+sud'], true)) {
+            return new \WP_Error('invalid_combo', 'Neplatná kombinace.', ['status' => 400]);
+        }
+        if ($email === '' || $phone === '') {
+            return new \WP_Error('missing_fields', 'E-mail a telefon jsou povinné.', ['status' => 400]);
+        }
+
+        $uuid      = wp_generate_uuid4();
+        $reference = 'M' . strtoupper(substr(bin2hex(random_bytes(5)), 0, 8));
+        $now       = current_time('mysql', true);
+
+        $table = $wpdb->prefix . 'duj_bookings';
+        $wpdb->insert($table, [
+            'uuid'           => $uuid,
+            'reference'      => $reference,
+            'booking_date'   => $date,
+            'slot_from'      => $slotFrom,
+            'slot_to'        => $slotTo,
+            'combo_key'      => $comboKey,
+            'guests'         => $guests,
+            'status'         => 'confirmed',
+            'tier_slug'      => 'public',
+            'amount_minor'   => 0,
+            'currency'       => 'CZK',
+            'customer_name'  => $name !== '' ? $name : null,
+            'customer_email' => $email,
+            'customer_phone' => $phone,
+            'customer_note'  => $note !== '' ? $note : null,
+            'admin_note'     => $adminNote !== '' ? $adminNote : null,
+            'payment_method' => 'manual',
+            'payment_status' => 'not_required',
+            'source'         => 'admin',
+            'locale'         => 'cs_CZ',
+            'created_at'     => $now,
+            'updated_at'     => $now,
+        ]);
+
+        return new \WP_REST_Response(['id' => $wpdb->insert_id, 'reference' => $reference], 201);
     }
 
     private function buildWhere(string $status, string $service, string $date_from, string $date_to, string $search, \wpdb $wpdb): array

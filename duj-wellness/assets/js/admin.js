@@ -163,7 +163,7 @@ async function openBookingModal(id) {
         const body = overlay.querySelector('.duj-modal-body');
 
         const statusBadge = `<span class="duj-badge duj-badge--${b.status}">${STATUS_LABELS[b.status] ?? b.status}</span>`;
-        const comboLabels = { sud: 'Koupací sud', sauna: 'Sauna', 'sud+sauna': 'Sud + sauna' };
+        const comboLabels = { sud: 'Koupací sud', sauna: 'Sauna', 'sauna+sud': 'Sauna + koupací sud' };
 
         body.innerHTML = `
             <div class="duj-booking-detail">
@@ -315,13 +315,18 @@ async function initCalendarPage() {
 }
 
 function openCalendarDayModal(date, dayInfo) {
-    const { overlay } = createModal(
+    const { overlay, close } = createModal(
         `Termíny: ${date}`,
         `<p>Klik pro vytvoření ruční rezervace nebo blokace.</p>
          <div id="duj-day-bookings"><div class="duj-spinner"></div></div>`,
-        `<a href="${cfg.newBookingUrl}?date=${date}" class="button button-primary">Vytvořit rezervaci</a>
+        `<button class="button button-primary" id="duj-create-booking-btn">Vytvořit rezervaci</button>
          <button class="button" id="duj-block-day">Blokovat den</button>`
     );
+
+    overlay.querySelector('#duj-create-booking-btn')?.addEventListener('click', () => {
+        close();
+        openManualBookingModal(date);
+    });
 
     apiFetch(`admin/calendar/day?date=${date}`).then(data => {
         const el = overlay.querySelector('#duj-day-bookings');
@@ -347,6 +352,56 @@ function openCalendarDayModal(date, dayInfo) {
             });
             showNotice('Den zablokován.');
             overlay.querySelector('.duj-modal-close').click();
+        } catch (err) { showNotice(err.message, 'error'); }
+    });
+}
+
+function openManualBookingModal(date) {
+    const { overlay, close } = createModal('Nová ruční rezervace',
+        `<form id="duj-manual-booking-form">
+            <table class="form-table">
+                <tr><th>Datum</th><td><input type="date" name="booking_date" value="${escHtml(date)}" required style="width:160px"></td></tr>
+                <tr><th>Čas od</th><td><input type="time" name="slot_from" value="16:00" required style="width:120px"></td></tr>
+                <tr><th>Čas do</th><td><input type="time" name="slot_to" value="18:00" required style="width:120px"></td></tr>
+                <tr><th>Služba</th><td>
+                    <select name="combo_key">
+                        <option value="sud">Koupací sud</option>
+                        <option value="sauna">Sauna</option>
+                        <option value="sauna+sud">Sauna + koupací sud</option>
+                    </select>
+                </td></tr>
+                <tr><th>Jméno</th><td><input type="text" name="customer_name" style="width:100%;max-width:340px"></td></tr>
+                <tr><th>E-mail *</th><td><input type="email" name="customer_email" required style="width:100%;max-width:340px"></td></tr>
+                <tr><th>Telefon *</th><td><input type="tel" name="customer_phone" required style="width:100%;max-width:340px"></td></tr>
+                <tr><th>Počet hostů</th><td><input type="number" name="guests" value="1" min="1" max="20" style="width:80px"></td></tr>
+                <tr><th>Poznámka zákazníka</th><td><textarea name="customer_note" rows="2" style="width:100%;max-width:340px"></textarea></td></tr>
+                <tr><th>Poznámka správce</th><td><textarea name="admin_note" rows="2" style="width:100%;max-width:340px"></textarea></td></tr>
+            </table>
+        </form>`,
+        `<button class="button button-primary" id="duj-manual-submit">Vytvořit rezervaci</button>
+         <button class="button duj-modal-close">Zrušit</button>`
+    );
+
+    overlay.querySelector('#duj-manual-submit')?.addEventListener('click', async () => {
+        const form = overlay.querySelector('#duj-manual-booking-form');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+        const fd = new FormData(form);
+        const payload = {
+            booking_date:   fd.get('booking_date'),
+            slot_from:      fd.get('slot_from'),
+            slot_to:        fd.get('slot_to'),
+            combo_key:      fd.get('combo_key'),
+            customer_name:  fd.get('customer_name') || '',
+            customer_email: fd.get('customer_email'),
+            customer_phone: fd.get('customer_phone'),
+            guests:         parseInt(fd.get('guests')) || 1,
+            customer_note:  fd.get('customer_note') || '',
+            admin_note:     fd.get('admin_note') || '',
+        };
+        try {
+            const res = await apiFetch('admin/bookings/manual', { method: 'POST', body: JSON.stringify(payload) });
+            close();
+            showNotice(`Rezervace ${res.reference} vytvořena.`);
         } catch (err) { showNotice(err.message, 'error'); }
     });
 }
