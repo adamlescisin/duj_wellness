@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Duj\Wellness\Rest;
 
+use Duj\Wellness\Notification\Channels\EmailChannel;
 use Duj\Wellness\Notification\Channels\TelegramChannel;
 use Duj\Wellness\Support\Settings;
 
@@ -63,14 +64,42 @@ final class AdminNotificationsController
     public function test(\WP_REST_Request $req): \WP_REST_Response|\WP_Error
     {
         $settings = Settings::instance();
-        $channel  = new TelegramChannel($settings);
+        $errors   = [];
+        $sent     = [];
 
+        // E-mail test — always available via wp_mail().
+        $to      = $settings->adminEmail();
+        $subject = __('Test e-mailu — Domeček u Josefa wellness', 'duj-wellness');
+        $body    = __('Toto je testovací zpráva z pluginu duj-wellness. Pokud ji vidíte, odesílání e-mailů funguje správně.', 'duj-wellness');
+
+        $emailChannel = new EmailChannel($settings);
         try {
-            $channel->send('', __('Test notifikace z Domeček u Josefa wellness pluginu.', 'duj-wellness'));
-            return new \WP_REST_Response(['sent' => true]);
+            $emailChannel->send($to, $body, [
+                'subject' => $subject,
+                'html'    => '<p>' . esc_html($body) . '</p>',
+                'text'    => $body,
+            ]);
+            $sent[] = 'email';
         } catch (\Throwable $e) {
-            return new \WP_Error('telegram_failed', $e->getMessage(), ['status' => 500]);
+            $errors['email'] = $e->getMessage();
         }
+
+        // Telegram test — only when configured.
+        $telegramChannel = new TelegramChannel($settings);
+        if ($telegramChannel->supports()) {
+            try {
+                $telegramChannel->send('', __('Test notifikace z Domeček u Josefa wellness pluginu.', 'duj-wellness'));
+                $sent[] = 'telegram';
+            } catch (\Throwable $e) {
+                $errors['telegram'] = $e->getMessage();
+            }
+        }
+
+        if (!empty($errors) && empty($sent)) {
+            return new \WP_Error('notification_failed', implode('; ', $errors), ['status' => 500]);
+        }
+
+        return new \WP_REST_Response(['sent' => $sent, 'errors' => $errors]);
     }
 
     public function log(\WP_REST_Request $req): \WP_REST_Response

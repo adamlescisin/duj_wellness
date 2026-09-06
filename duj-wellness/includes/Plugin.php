@@ -205,27 +205,29 @@ final class Plugin
             $notificationSvc,
         ))->register();
 
-        // Stripe-dependent controllers — wrapped so a missing vendor/ doesn't kill all routes.
+        // BookingsController is always registered; Stripe gateway is optional.
+        $stripeGateway = null;
         try {
             $stripeGateway = StripeGatewayFactory::create($settings);
+        } catch (\Throwable $e) {
+            error_log('[duj-wellness] Stripe init failed — payment via Stripe unavailable: ' . $e->getMessage());
+        }
 
-            (new BookingsController(
-                $bookingSvc,
-                $tierResolver,
-                new RateLimiter(maxAttempts: 20),
-                $stripeGateway,
-                $settings,
-                $bookingRepo,
-            ))->register();
+        (new BookingsController(
+            $bookingSvc,
+            $tierResolver,
+            new RateLimiter(maxAttempts: 20),
+            $stripeGateway,
+            $settings,
+            $bookingRepo,
+        ))->register();
 
+        // Stripe webhook controller — only when Stripe is available.
+        if ($stripeGateway !== null) {
             (new WebhooksController(
                 new StripeWebhookHandler($stripeGateway, $bookingRepo, $bookingSvc, $notificationSvc),
                 $settings,
             ))->register();
-        } catch (\Throwable $e) {
-            if ($this->settings()->debugMode()) {
-                error_log('[duj-wellness] Stripe route registration failed: ' . $e->getMessage());
-            }
         }
     }
 

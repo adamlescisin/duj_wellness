@@ -25,6 +25,12 @@ final class StripeGatewayFactory
 
     public static function resolveSecretKey(SettingsInterface $settings): string
     {
+        // Delegate to Settings which handles test/live mode and all constant names.
+        if ($settings instanceof \Duj\Wellness\Support\Settings) {
+            return $settings->stripeSecretKey();
+        }
+
+        // Fallback for non-Settings implementations (e.g. tests).
         if (defined('DUJ_STRIPE_SECRET_KEY') && is_string(constant('DUJ_STRIPE_SECRET_KEY'))) {
             return constant('DUJ_STRIPE_SECRET_KEY');
         }
