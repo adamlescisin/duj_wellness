@@ -1,0 +1,431 @@
+# Copyright (C) 2026 Domeček u Josefa
+# This file is distributed under the same license as the duj-wellness plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: duj-wellness 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-05T00:00:00+02:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"X-Generator: WP-CLI\n"
+"X-Domain: duj-wellness\n"
+
+#. Plugin Name of the plugin
+msgid "Duj Wellness"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://domecekujosefa.cz"
+msgstr ""
+
+#. Description of the plugin
+msgid "Rezervační systém pro wellness Domeček u Josefa."
+msgstr ""
+
+#: includes/Plugin.php
+msgid "Wellness rezervace"
+msgstr ""
+
+#: includes/Plugin.php includes/Admin/Menu.php
+msgid "Wellness"
+msgstr ""
+
+#: includes/Admin/Menu.php
+msgid "Rezervace"
+msgstr ""
+
+#: includes/Admin/Menu.php
+msgid "Kalendář"
+msgstr ""
+
+#: includes/Admin/Menu.php
+msgid "Rozvrh"
+msgstr ""
+
+#: includes/Admin/Menu.php
+msgid "Ceník"
+msgstr ""
+
+#: includes/Admin/Menu.php
+msgid "Ubytování"
+msgstr ""
+
+#: includes/Admin/Menu.php
+msgid "E-maily"
+msgstr ""
+
+#: includes/Admin/Menu.php
+msgid "Notifikace"
+msgstr ""
+
+#: includes/Admin/Menu.php
+msgid "Nastavení"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Přístup odepřen."
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Správa rezervací"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Vše"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Čekající"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Potvrzené"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Zrušené"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Datum od"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Datum do"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Hledat"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgid "Export CSV"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Nastavení wellness"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Stripe — platby"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Režim"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Testovací"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Ostrý"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Secret key"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Nastaveno (z konstant wp-config.php nebo option)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Nastavte v wp-config.php jako DUJ_STRIPE_SECRET_KEY nebo DUJ_STRIPE_TEST_SECRET_KEY."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Hold (min)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Jak dlouho je slot blokovaný při čekání na platbu."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Rozvrh slotů"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Výchozí délka slotu (min)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Technická pauza (min)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Délka kalendáře (měsíce)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Uzávěrka"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Uzávěrka aktivní"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Aktivovat uzávěrku stejný den"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Čas uzávěrky"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Min. lead time (min)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Minimum minut od teď do začátku slotu."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Ubytování"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Výchozí politika pro obsazené dny"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Ignorovat"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Jen ubytovaní"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Zavřeno"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Data stará po (dnech)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Politika při zastaralých datech"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Bezpečné selhání (closed)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Jen varovat"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Bankovní převod / QR"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "IBAN"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Číslo účtu (CZ formát)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "QR hold (h)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Kontakt a texty"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Kontaktní e-mail"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Kontaktní telefon"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Adresa"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "URL obchodních podmínek"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Text pro vyhrazené dny"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "GDPR"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Retence osobních dat (měsíce)"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Ladění"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Debug mód"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Zapnout ladicí výstup"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Uložit nastavení"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php includes/Gdpr/GdprEraser.php
+msgid "Wellness rezervace"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Reference"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Datum rezervace"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Čas od"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Čas do"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Služba"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Počet osob"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Stav"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Částka"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Jméno zákazníka"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "E-mail"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Telefon"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Poznámka zákazníka"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Způsob platby"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Stav platby"
+msgstr ""
+
+#: includes/Gdpr/GdprExporter.php
+msgid "Vytvořeno"
+msgstr ""
+
+#: includes/Gdpr/GdprEraser.php
+msgid "Rezervace s dokončenými platbami jsou zachovány v anonymizované podobě pro účetní účely."
+msgstr ""
+
+#: includes/Rest/AdminAccommodationController.php
+msgid "Neplatné datum."
+msgstr ""
+
+#: includes/Rest/AdminAccommodationController.php
+msgid "Neplatná politika."
+msgstr ""
+
+#: includes/Rest/AdminAccommodationController.php
+msgid "Nebyl nahrán žádný soubor."
+msgstr ""
+
+#: includes/Rest/AdminAccommodationController.php
+msgid "Nepodařilo se otevřít soubor."
+msgstr ""
+
+#: includes/Rest/AdminAccommodationController.php
+msgid "Nepodařilo se automaticky namapovat sloupce data. Exportujte CSV s hlavičkou arrival/departure nebo from/to."
+msgstr ""
+
+#: includes/Rest/AdminBookingsController.php
+msgid "Rezervace nenalezena."
+msgstr ""
+
+#: includes/Rest/AdminBookingsController.php
+msgid "Nelze smazat zaplacenou rezervaci bez refundace."
+msgstr ""
+
+#: includes/Rest/AdminBookingsController.php
+msgid "Neplatná akce."
+msgstr ""
+
+#: includes/Rest/AdminPricingController.php
+msgid "Chybí tier_slug nebo label."
+msgstr ""
+
+#: includes/Rest/AdminScheduleController.php
+msgid "Weekday must be 1-7."
+msgstr ""
+
+#: includes/Rest/AdminScheduleController.php
+msgid "Neplatný čas."
+msgstr ""
+
+#: includes/Rest/AdminScheduleController.php
+msgid "Okno není dostatečně velké pro ani jeden slot."
+msgstr ""
+
+#: includes/Rest/AdminTemplatesController.php
+msgid "Neplatná šablona."
+msgstr ""
+
+#: includes/Rest/AdminTemplatesController.php
+msgid "Chybí subject nebo body."
+msgstr ""
+
+#: includes/Notification/TemplateRenderer.php
+msgid "Vaše rezervace {{reference}} čeká na potvrzení"
+msgstr ""
+
+#: includes/Notification/TemplateRenderer.php
+msgid "Rezervace {{reference}} potvrzena"
+msgstr ""
+
+#: includes/Notification/TemplateRenderer.php
+msgid "Rezervace {{reference}} zrušena"
+msgstr ""
+
+#: includes/Notification/Channels/TelegramChannel.php
+msgid "Test notifikace z Domeček u Josefa wellness pluginu."
+msgstr ""
+
+#: includes/Cron/RetentionCleanupJob.php
+msgid "Každý den (duj-wellness)"
+msgstr ""

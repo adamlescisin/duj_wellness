@@ -1,0 +1,319 @@
+# Czech translation for duj-wellness
+# Copyright (C) 2026 Domeček u Josefa
+msgid ""
+msgstr ""
+"Project-Id-Version: duj-wellness 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-05T00:00:00+02:00\n"
+"PO-Revision-Date: 2026-09-05T00:00:00+02:00\n"
+"Last-Translator: Domeček u Josefa <info@domecekujosefa.cz>\n"
+"Language-Team: Czech\n"
+"Language: cs_CZ\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Domain: duj-wellness\n"
+
+# Poznámka: plugin je primárně v češtině, takže většina stringů je přeložena 1:1.
+# Tento soubor slouží jako základ pro případné budoucí úpravy nebo lokalizaci.
+
+msgid "Duj Wellness"
+msgstr "Duj Wellness"
+
+msgid "Wellness rezervace"
+msgstr "Wellness rezervace"
+
+msgid "Wellness"
+msgstr "Wellness"
+
+msgid "Rezervace"
+msgstr "Rezervace"
+
+msgid "Kalendář"
+msgstr "Kalendář"
+
+msgid "Rozvrh"
+msgstr "Rozvrh"
+
+msgid "Ceník"
+msgstr "Ceník"
+
+msgid "Ubytování"
+msgstr "Ubytování"
+
+msgid "E-maily"
+msgstr "E-maily"
+
+msgid "Notifikace"
+msgstr "Notifikace"
+
+msgid "Nastavení"
+msgstr "Nastavení"
+
+msgid "Přístup odepřen."
+msgstr "Přístup odepřen."
+
+msgid "Správa rezervací"
+msgstr "Správa rezervací"
+
+msgid "Vše"
+msgstr "Vše"
+
+msgid "Čekající"
+msgstr "Čekající"
+
+msgid "Potvrzené"
+msgstr "Potvrzené"
+
+msgid "Zrušené"
+msgstr "Zrušené"
+
+msgid "Datum od"
+msgstr "Datum od"
+
+msgid "Datum do"
+msgstr "Datum do"
+
+msgid "Hledat"
+msgstr "Hledat"
+
+msgid "Export CSV"
+msgstr "Export CSV"
+
+msgid "Nastavení wellness"
+msgstr "Nastavení wellness"
+
+msgid "Stripe — platby"
+msgstr "Stripe — platby"
+
+msgid "Režim"
+msgstr "Režim"
+
+msgid "Testovací"
+msgstr "Testovací"
+
+msgid "Ostrý"
+msgstr "Ostrý"
+
+msgid "Secret key"
+msgstr "Tajný klíč"
+
+msgid "Nastaveno (z konstant wp-config.php nebo option)"
+msgstr "Nastaveno (z konstant wp-config.php nebo option)"
+
+msgid "Nastavte v wp-config.php jako DUJ_STRIPE_SECRET_KEY nebo DUJ_STRIPE_TEST_SECRET_KEY."
+msgstr "Nastavte v wp-config.php jako DUJ_STRIPE_SECRET_KEY nebo DUJ_STRIPE_TEST_SECRET_KEY."
+
+msgid "Hold (min)"
+msgstr "Hold (min)"
+
+msgid "Jak dlouho je slot blokovaný při čekání na platbu."
+msgstr "Jak dlouho je slot blokovaný při čekání na platbu."
+
+msgid "Rozvrh slotů"
+msgstr "Rozvrh slotů"
+
+msgid "Výchozí délka slotu (min)"
+msgstr "Výchozí délka slotu (min)"
+
+msgid "Technická pauza (min)"
+msgstr "Technická pauza (min)"
+
+msgid "Délka kalendáře (měsíce)"
+msgstr "Délka kalendáře (měsíce)"
+
+msgid "Uzávěrka"
+msgstr "Uzávěrka"
+
+msgid "Uzávěrka aktivní"
+msgstr "Uzávěrka aktivní"
+
+msgid "Aktivovat uzávěrku stejný den"
+msgstr "Aktivovat uzávěrku stejný den"
+
+msgid "Čas uzávěrky"
+msgstr "Čas uzávěrky"
+
+msgid "Min. lead time (min)"
+msgstr "Min. čas předstihu (min)"
+
+msgid "Minimum minut od teď do začátku slotu."
+msgstr "Minimum minut od teď do začátku slotu."
+
+msgid "Ubytování"
+msgstr "Ubytování"
+
+msgid "Výchozí politika pro obsazené dny"
+msgstr "Výchozí politika pro obsazené dny"
+
+msgid "Ignorovat"
+msgstr "Ignorovat"
+
+msgid "Jen ubytovaní"
+msgstr "Jen ubytovaní"
+
+msgid "Zavřeno"
+msgstr "Zavřeno"
+
+msgid "Data stará po (dnech)"
+msgstr "Data stará po (dnech)"
+
+msgid "Politika při zastaralých datech"
+msgstr "Politika při zastaralých datech"
+
+msgid "Bezpečné selhání (closed)"
+msgstr "Bezpečné selhání (zavřeno)"
+
+msgid "Jen varovat"
+msgstr "Jen varovat"
+
+msgid "Bankovní převod / QR"
+msgstr "Bankovní převod / QR"
+
+msgid "IBAN"
+msgstr "IBAN"
+
+msgid "Číslo účtu (CZ formát)"
+msgstr "Číslo účtu (CZ formát)"
+
+msgid "QR hold (h)"
+msgstr "QR hold (h)"
+
+msgid "Kontakt a texty"
+msgstr "Kontakt a texty"
+
+msgid "Kontaktní e-mail"
+msgstr "Kontaktní e-mail"
+
+msgid "Kontaktní telefon"
+msgstr "Kontaktní telefon"
+
+msgid "Adresa"
+msgstr "Adresa"
+
+msgid "URL obchodních podmínek"
+msgstr "URL obchodních podmínek"
+
+msgid "Text pro vyhrazené dny"
+msgstr "Text pro vyhrazené dny"
+
+msgid "GDPR"
+msgstr "GDPR"
+
+msgid "Retence osobních dat (měsíce)"
+msgstr "Retence osobních dat (měsíce)"
+
+msgid "Ladění"
+msgstr "Ladění"
+
+msgid "Debug mód"
+msgstr "Ladící mód"
+
+msgid "Zapnout ladicí výstup"
+msgstr "Zapnout ladicí výstup"
+
+msgid "Uložit nastavení"
+msgstr "Uložit nastavení"
+
+msgid "Reference"
+msgstr "Reference"
+
+msgid "Datum rezervace"
+msgstr "Datum rezervace"
+
+msgid "Čas od"
+msgstr "Čas od"
+
+msgid "Čas do"
+msgstr "Čas do"
+
+msgid "Služba"
+msgstr "Služba"
+
+msgid "Počet osob"
+msgstr "Počet osob"
+
+msgid "Stav"
+msgstr "Stav"
+
+msgid "Částka"
+msgstr "Částka"
+
+msgid "Jméno zákazníka"
+msgstr "Jméno zákazníka"
+
+msgid "E-mail"
+msgstr "E-mail"
+
+msgid "Telefon"
+msgstr "Telefon"
+
+msgid "Poznámka zákazníka"
+msgstr "Poznámka zákazníka"
+
+msgid "Způsob platby"
+msgstr "Způsob platby"
+
+msgid "Stav platby"
+msgstr "Stav platby"
+
+msgid "Vytvořeno"
+msgstr "Vytvořeno"
+
+msgid "Rezervace s dokončenými platbami jsou zachovány v anonymizované podobě pro účetní účely."
+msgstr "Rezervace s dokončenými platbami jsou zachovány v anonymizované podobě pro účetní účely."
+
+msgid "Neplatné datum."
+msgstr "Neplatné datum."
+
+msgid "Neplatná politika."
+msgstr "Neplatná politika."
+
+msgid "Nebyl nahrán žádný soubor."
+msgstr "Nebyl nahrán žádný soubor."
+
+msgid "Nepodařilo se otevřít soubor."
+msgstr "Nepodařilo se otevřít soubor."
+
+msgid "Nepodařilo se automaticky namapovat sloupce data. Exportujte CSV s hlavičkou arrival/departure nebo from/to."
+msgstr "Nepodařilo se automaticky namapovat sloupce data. Exportujte CSV s hlavičkou arrival/departure nebo from/to."
+
+msgid "Rezervace nenalezena."
+msgstr "Rezervace nenalezena."
+
+msgid "Nelze smazat zaplacenou rezervaci bez refundace."
+msgstr "Nelze smazat zaplacenou rezervaci bez refundace."
+
+msgid "Neplatná akce."
+msgstr "Neplatná akce."
+
+msgid "Chybí tier_slug nebo label."
+msgstr "Chybí identifikátor cenové hladiny nebo název kódu."
+
+msgid "Weekday must be 1-7."
+msgstr "Den v týdnu musí být 1–7."
+
+msgid "Neplatný čas."
+msgstr "Neplatný čas."
+
+msgid "Okno není dostatečně velké pro ani jeden slot."
+msgstr "Časové okno není dostatečně velké pro ani jeden slot."
+
+msgid "Neplatná šablona."
+msgstr "Neplatná šablona."
+
+msgid "Chybí subject nebo body."
+msgstr "Chybí předmět nebo tělo e-mailu."
+
+msgid "Test notifikace z Domeček u Josefa wellness pluginu."
+msgstr "Test notifikace z Domeček u Josefa wellness pluginu."
+
+msgid "Každý den (duj-wellness)"
+msgstr "Každý den (duj-wellness)"
+
+msgid "Každou minutu (duj-wellness)"
+msgstr "Každou minutu (duj-wellness)"
+
+msgid "Rezervační systém pro wellness Domeček u Josefa."
+msgstr "Rezervační systém pro wellness Domeček u Josefa."

@@ -1,0 +1,16 @@
+# Translation of duj-wellness in Czech
+# This file is distributed under the same license as the duj-wellness package.
+msgid ""
+msgstr ""
+"Project-Id-Version: duj-wellness 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-05 00:00+0000\n"
+"PO-Revision-Date: 2026-09-05 00:00+0000\n"
+"Language: cs_CZ\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+msgid "Správce wellness"
+msgstr "Správce wellness"
