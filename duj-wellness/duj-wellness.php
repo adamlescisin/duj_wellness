@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 defined('ABSPATH') || exit;
 
-define('DUJ_WELLNESS_VERSION', '0.1.8');
+define('DUJ_WELLNESS_VERSION', '0.1.9');
 define('DUJ_WELLNESS_FILE', __FILE__);
 define('DUJ_WELLNESS_DIR', plugin_dir_path(__FILE__));
 define('DUJ_WELLNESS_URL', plugin_dir_url(__FILE__));
@@ -70,6 +70,16 @@ use Duj\Wellness\Plugin;
 
 register_activation_hook(__FILE__, [Activator::class, 'activate']);
 register_deactivation_hook(__FILE__, [Deactivator::class, 'deactivate']);
+
+// Ensure the deploy webhook callback runs to completion even when the GitHub
+// client disconnects after its ~10 s timeout, so all plugin files are extracted.
+add_filter('rest_pre_dispatch', static function ($result, $server, \WP_REST_Request $request) {
+    if ($request->get_route() === '/duj/v1/deploy') {
+        ignore_user_abort(true);
+        set_time_limit(300);
+    }
+    return $result;
+}, 10, 3);
 
 add_action('plugins_loaded', static function (): void {
     Plugin::instance()->boot();
