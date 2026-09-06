@@ -54,7 +54,9 @@ final class ActionController
 
     public function serveHtmlResponse(bool $served, \WP_REST_Response $result): bool
     {
-        if ($result->get_header('Content-Type') !== 'text/html; charset=UTF-8') {
+        $headers     = $result->get_headers();
+        $contentType = $headers['Content-Type'] ?? $headers['content-type'] ?? '';
+        if ($contentType !== 'text/html; charset=UTF-8') {
             return $served;
         }
 
