@@ -19,8 +19,8 @@ final class AccessCodeController
 
     public function register(): void
     {
-        register_rest_route(self::NAMESPACE, '/access-code/validate', [
-            'methods'             => 'POST',
+        register_rest_route(self::NAMESPACE, '/access-codes/validate', [
+            'methods'             => 'GET',
             'callback'            => [$this, 'validate'],
             'permission_callback' => '__return_true',
             'args'                => [
