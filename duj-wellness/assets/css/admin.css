@@ -52,10 +52,10 @@
 .duj-cal-matrix__res-header { text-align: center; padding: 1px 2px; font-size: .82rem; line-height: 1; }
 .duj-cal-matrix__time { font-size: .65rem; color: #50575e; white-space: nowrap; padding: 2px 2px 2px 0; font-variant-numeric: tabular-nums; }
 .duj-cal-matrix__cell { border-radius: 3px; padding: 2px 0; width: 50%; }
-.duj-cal-matrix__cell--available { background: #e6f4ea; }
-.duj-cal-matrix__cell--booked    { background: #fce8e8; }
-.duj-cal-matrix__cell--partial   { background: #fff4e0; }
-.duj-cal-matrix__cell--closed    { background: #f0f0f1; }
+.duj-cal-matrix__cell--available { background: #27ae60; }
+.duj-cal-matrix__cell--booked    { background: #e74c3c; }
+.duj-cal-matrix__cell--partial   { background: #f1c40f; }
+.duj-cal-matrix__cell--closed    { background: #d5d5d5; }
 @media (max-width: 900px) {
     .duj-cal-matrix { font-size: .62rem; }
     .duj-cal-matrix__time { font-size: .58rem; }

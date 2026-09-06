@@ -385,13 +385,16 @@ function openCalendarDayModal(date, dayInfo) {
         openManualBookingModal(date);
     });
 
+    const COMBO_LABELS = { sud: '🛁 Sud', sauna: '🔥 Sauna', 'sauna+sud': '🛁🔥 Sauna + Sud' };
+
     apiFetch(`admin/calendar/day?date=${date}`).then(data => {
         const el = overlay.querySelector('#duj-day-bookings');
         if (!data.bookings?.length) { el.textContent = 'Žádné rezervace.'; return; }
-        el.innerHTML = `<table class="widefat fixed"><thead><tr><th>Ref</th><th>Čas</th><th>Zákazník</th><th>Stav</th></tr></thead><tbody>
+        el.innerHTML = `<table class="widefat fixed"><thead><tr><th>Ref</th><th>Čas</th><th>Služba</th><th>Zákazník</th><th>Stav</th></tr></thead><tbody>
             ${data.bookings.map(b => `<tr>
                 <td><a href="#" data-booking-detail="${b.id}">${escHtml(b.reference)}</a></td>
-                <td>${escHtml(b.slot_from)}–${escHtml(b.slot_to)}</td>
+                <td>${escHtml(b.slot_from.slice(0,5))}–${escHtml(b.slot_to.slice(0,5))}</td>
+                <td>${escHtml(COMBO_LABELS[b.combo_key] ?? b.combo_key)}</td>
                 <td>${escHtml(b.customer_email)}</td>
                 <td><span class="duj-badge duj-badge--${b.status}">${STATUS_LABELS[b.status]??b.status}</span></td>
             </tr>`).join('')}</tbody></table>`;
