@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Duj\Wellness;
 
 use Duj\Wellness\Migrations\Migration001Initial;
+use Duj\Wellness\Migrations\Migration002ScheduleOverrideModes;
+use Duj\Wellness\Migrations\Migration003ReseedDefaults;
 use Duj\Wellness\Migrations\MigrationRunner;
 
 final class Activator
@@ -20,6 +22,8 @@ final class Activator
     {
         $runner = new MigrationRunner();
         $runner->register(new Migration001Initial());
+        $runner->register(new Migration002ScheduleOverrideModes());
+        $runner->register(new Migration003ReseedDefaults());
         $runner->run();
     }
 

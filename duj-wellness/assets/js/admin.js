@@ -424,15 +424,65 @@ function initSchedulePage() {
         });
     }
 
+    // Add rule form (inline in Pravidla tab)
+    const addRuleForm = document.getElementById('duj-add-rule-form');
+    addRuleForm?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(addRuleForm);
+        const payload = {
+            weekday:   parseInt(fd.get('weekday')),
+            time_from: fd.get('time_from'),
+            time_to:   fd.get('time_to'),
+            label:     fd.get('label') || '',
+        };
+        try {
+            const res = await apiFetch('admin/schedule/rules', {
+                method: 'POST', body: JSON.stringify(payload),
+            });
+            showNotice('Pravidlo přidáno.');
+            // Remove the "no rules" empty row if present
+            document.getElementById('duj-rules-empty')?.remove();
+            // Append new row to table
+            const weekdayLabels = {1:'Po',2:'Út',3:'St',4:'Čt',5:'Pá',6:'So',7:'Ne'};
+            const tbody = document.getElementById('duj-rules-tbody');
+            if (tbody) {
+                const tr = document.createElement('tr');
+                tr.dataset.ruleId = res.id;
+                tr.innerHTML = `
+                    <td>${escHtml(weekdayLabels[payload.weekday] ?? payload.weekday)}</td>
+                    <td>${escHtml(payload.time_from)}–${escHtml(payload.time_to)}</td>
+                    <td>${escHtml(payload.label)}</td>
+                    <td>—</td><td>—</td><td>✓</td>
+                    <td><button type="button" class="button button-small" data-delete-rule="${res.id}">Smazat</button></td>`;
+                tbody.appendChild(tr);
+                // Wire the new delete button
+                tr.querySelector('[data-delete-rule]').addEventListener('click', handleDeleteRule);
+            }
+            addRuleForm.reset();
+        } catch (err) { showNotice(err.message, 'error'); }
+    });
+
+    function handleDeleteRule() {
+        const btn = this;
+        if (!confirm('Smazat pravidlo?')) return;
+        apiFetch(`admin/schedule/rules/${btn.dataset.deleteRule}`, { method: 'DELETE' })
+            .then(() => {
+                const tr = btn.closest('tr');
+                tr?.remove();
+                const tbody = document.getElementById('duj-rules-tbody');
+                if (tbody && !tbody.querySelector('tr:not(#duj-rules-empty)')) {
+                    const empty = document.createElement('tr');
+                    empty.id = 'duj-rules-empty';
+                    empty.innerHTML = '<td colspan="7">Žádná pravidla. Přidejte první pravidlo výše.</td>';
+                    tbody.appendChild(empty);
+                }
+            })
+            .catch(err => showNotice(err.message, 'error'));
+    }
+
     // Delete rule buttons
     document.querySelectorAll('[data-delete-rule]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if (!confirm('Smazat pravidlo?')) return;
-            try {
-                await apiFetch(`admin/schedule/rules/${btn.dataset.deleteRule}`, { method: 'DELETE' });
-                btn.closest('tr')?.remove();
-            } catch (err) { showNotice(err.message, 'error'); }
-        });
+        btn.addEventListener('click', handleDeleteRule);
     });
 
     // Delete override buttons

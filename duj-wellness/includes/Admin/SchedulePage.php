@@ -40,7 +40,37 @@ final class SchedulePage
 
             <!-- Tab A: Rules -->
             <div class="duj-tab-panel" id="tab-rules">
-                <table class="widefat fixed">
+                <h3><?= esc_html__('Přidat pravidlo', 'duj-wellness') ?></h3>
+                <form id="duj-add-rule-form" style="max-width:600px;margin-bottom:1.5rem">
+                    <table class="form-table">
+                        <tr>
+                            <th><label for="rule-weekday"><?= esc_html__('Den v týdnu', 'duj-wellness') ?></label></th>
+                            <td>
+                                <select id="rule-weekday" name="weekday" required>
+                                    <?php foreach ($weekdays as $num => $label): ?>
+                                        <option value="<?= $num ?>"><?= esc_html($label) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><label for="rule-from"><?= esc_html__('Čas od', 'duj-wellness') ?></label></th>
+                            <td><input type="time" id="rule-from" name="time_from" value="16:00" required></td>
+                        </tr>
+                        <tr>
+                            <th><label for="rule-to"><?= esc_html__('Čas do', 'duj-wellness') ?></label></th>
+                            <td><input type="time" id="rule-to" name="time_to" value="18:00" required></td>
+                        </tr>
+                        <tr>
+                            <th><label for="rule-label"><?= esc_html__('Popis (nepovinný)', 'duj-wellness') ?></label></th>
+                            <td><input type="text" id="rule-label" name="label" class="regular-text" placeholder="<?= esc_attr__('Např. Pondělí odpoledne', 'duj-wellness') ?>"></td>
+                        </tr>
+                    </table>
+                    <button type="submit" class="button button-primary"><?= esc_html__('Přidat pravidlo', 'duj-wellness') ?></button>
+                </form>
+
+                <h3><?= esc_html__('Stávající pravidla', 'duj-wellness') ?></h3>
+                <table class="widefat fixed" id="duj-rules-table">
                     <thead><tr>
                         <th><?= esc_html__('Den', 'duj-wellness') ?></th>
                         <th><?= esc_html__('Čas', 'duj-wellness') ?></th>
@@ -50,12 +80,12 @@ final class SchedulePage
                         <th><?= esc_html__('Aktivní', 'duj-wellness') ?></th>
                         <th><?= esc_html__('Akce', 'duj-wellness') ?></th>
                     </tr></thead>
-                    <tbody>
+                    <tbody id="duj-rules-tbody">
                         <?php if (empty($rules)): ?>
-                            <tr><td colspan="7"><?= esc_html__('Žádná pravidla.', 'duj-wellness') ?></td></tr>
+                            <tr id="duj-rules-empty"><td colspan="7"><?= esc_html__('Žádná pravidla. Přidejte první pravidlo výše.', 'duj-wellness') ?></td></tr>
                         <?php endif; ?>
                         <?php foreach ($rules as $r): ?>
-                            <tr>
+                            <tr data-rule-id="<?= (int)$r['id'] ?>">
                                 <td><?= esc_html($weekdays[(int)$r['weekday']] ?? $r['weekday']) ?></td>
                                 <td><?= esc_html(substr($r['time_from'],0,5)) ?>–<?= esc_html(substr($r['time_to'],0,5)) ?></td>
                                 <td><?= esc_html($r['label'] ?? '') ?></td>
