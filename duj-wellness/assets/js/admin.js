@@ -299,17 +299,63 @@ async function initCalendarPage() {
             if (isPast) cell.classList.add('past');
             if (dateStr === todayStr) cell.classList.add('today');
 
-            const dayInfo = avail[dateStr] ?? {};
-            cell.innerHTML = `<div class="duj-cal-day">${d}</div><div class="duj-cal-resources"></div>`;
-            const resContainer = cell.querySelector('.duj-cal-resources');
-            RESOURCES.forEach(({ key, icon, label }) => {
-                const state = dayInfo[key] ?? 'closed';
-                const chip = document.createElement('div');
-                chip.className = `duj-cal-res duj-cal-res--${state}`;
-                chip.innerHTML = `<span class="duj-cal-res-icon">${icon}</span><span class="duj-cal-res-label">${label}</span>`;
-                chip.title = `${label}: ${STATE_LABELS_CS[state] ?? state}`;
-                resContainer.appendChild(chip);
-            });
+            const dayInfo  = avail[dateStr] ?? {};
+            const slots    = dayInfo.slots ?? {};
+            const slotTimes = Object.keys(slots).sort();
+
+            const dayNum = document.createElement('div');
+            dayNum.className = 'duj-cal-day';
+            dayNum.textContent = String(d);
+            cell.appendChild(dayNum);
+
+            if (slotTimes.length === 0) {
+                // Closed day — show greyed-out resource chips
+                const resContainer = document.createElement('div');
+                resContainer.className = 'duj-cal-resources';
+                RESOURCES.forEach(({ icon, label }) => {
+                    const chip = document.createElement('div');
+                    chip.className = 'duj-cal-res duj-cal-res--closed';
+                    chip.innerHTML = `<span class="duj-cal-res-icon">${icon}</span><span class="duj-cal-res-label">${label}</span>`;
+                    resContainer.appendChild(chip);
+                });
+                cell.appendChild(resContainer);
+            } else {
+                // Build time × service matrix
+                const matrix = document.createElement('table');
+                matrix.className = 'duj-cal-matrix';
+
+                // Header: service icons
+                const thead = matrix.createTHead();
+                const hRow  = thead.insertRow();
+                const corner = document.createElement('th');
+                corner.className = 'duj-cal-matrix__corner';
+                hRow.appendChild(corner);
+                RESOURCES.forEach(({ icon, label }) => {
+                    const th = document.createElement('th');
+                    th.className = 'duj-cal-matrix__res-header';
+                    th.textContent = icon;
+                    th.title = label;
+                    hRow.appendChild(th);
+                });
+
+                // Rows: one per slot time
+                const tbody = matrix.createTBody();
+                slotTimes.forEach(time => {
+                    const slotData = slots[time] ?? {};
+                    const row = tbody.insertRow();
+                    const tc = row.insertCell();
+                    tc.className = 'duj-cal-matrix__time';
+                    tc.textContent = time;
+                    RESOURCES.forEach(({ key, label }) => {
+                        const state = slotData[key] ?? 'closed';
+                        const td = row.insertCell();
+                        td.className = `duj-cal-matrix__cell duj-cal-matrix__cell--${state}`;
+                        td.title = `${time} · ${label}: ${STATE_LABELS_CS[state] ?? state}`;
+                    });
+                });
+
+                cell.appendChild(matrix);
+            }
 
             if (!isPast) {
                 cell.addEventListener('click', () => openCalendarDayModal(dateStr, dayInfo));

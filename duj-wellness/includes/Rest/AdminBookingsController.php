@@ -237,7 +237,7 @@ final class AdminBookingsController
         $from = sanitize_text_field($req->get_param('from') ?? date('Y-m-01'));
         $to   = sanitize_text_field($req->get_param('to')   ?? date('Y-m-t'));
 
-        // 1. Fetch schedule overrides in range — one query.
+        // 1. Fetch schedule overrides in range.
         $overridesTable = $wpdb->prefix . 'duj_schedule_overrides';
         $overrideRows   = $wpdb->get_results(
             $wpdb->prepare(
@@ -251,22 +251,36 @@ final class AdminBookingsController
             $overrides[$ov['override_date']] = $ov['mode'];
         }
 
-        // 2. Fetch distinct weekdays that have active schedule rules overlapping this range.
-        // weekday uses ISO 8601: 1=Monday … 7=Sunday (matches ScheduleResolver).
-        $rulesTable  = $wpdb->prefix . 'duj_schedule_rules';
-        $ruleRows    = $wpdb->get_results(
+        // 2. Fetch active schedule rules with slot times, grouped by weekday.
+        $rulesTable = $wpdb->prefix . 'duj_schedule_rules';
+        $ruleRows   = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT weekday FROM `{$rulesTable}`
+                "SELECT weekday, time_from, resource_scope FROM `{$rulesTable}`
                  WHERE is_active = 1
                    AND (valid_from IS NULL OR valid_from <= %s)
-                   AND (valid_to   IS NULL OR valid_to   >= %s)",
+                   AND (valid_to   IS NULL OR valid_to   >= %s)
+                 ORDER BY time_from ASC",
                 $to, $from
             ),
             ARRAY_A
         ) ?? [];
-        $openWeekdays = array_flip(array_column($ruleRows, 'weekday'));
 
-        // 3. Build base availability for every day in range.
+        $allResources = ['sud', 'sauna'];
+        $rulesByWeekday = []; // weekday => time => ['sud','sauna']
+        foreach ($ruleRows as $r) {
+            $wd       = (int) $r['weekday'];
+            $timeKey  = substr($r['time_from'], 0, 5); // HH:MM
+            $scope    = isset($r['resource_scope']) ? json_decode($r['resource_scope'], true) : null;
+            $resources = is_array($scope) ? $scope : $allResources;
+            if (!isset($rulesByWeekday[$wd][$timeKey])) {
+                $rulesByWeekday[$wd][$timeKey] = [];
+            }
+            foreach ($resources as $res) {
+                $rulesByWeekday[$wd][$timeKey][$res] = true;
+            }
+        }
+
+        // 3. Build base slot availability for every open day in range.
         $byDate  = [];
         $tz      = new \DateTimeZone('Europe/Prague');
         $current = new \DateTimeImmutable($from, $tz);
@@ -274,48 +288,62 @@ final class AdminBookingsController
 
         while ($current <= $end) {
             $dateStr = $current->format('Y-m-d');
-            $isoDay  = (int) $current->format('N'); // 1=Mon … 7=Sun
+            $isoDay  = (int) $current->format('N');
 
-            if (isset($overrides[$dateStr])) {
-                $open = ($overrides[$dateStr] !== 'closed');
-            } else {
-                $open = isset($openWeekdays[$isoDay]);
-            }
+            $isClosed = isset($overrides[$dateStr]) && $overrides[$dateStr] === 'closed';
+            $isOpen   = !$isClosed && isset($rulesByWeekday[$isoDay]);
 
-            if ($open) {
-                $byDate[$dateStr] = ['sud' => 'available', 'sauna' => 'available'];
+            if ($isOpen) {
+                $slots = [];
+                foreach ($rulesByWeekday[$isoDay] as $timeKey => $resMap) {
+                    foreach (array_keys($resMap) as $res) {
+                        $slots[$timeKey][$res] = 'available';
+                    }
+                }
+                if (!empty($slots)) {
+                    $byDate[$dateStr] = ['slots' => $slots];
+                }
             }
 
             $current = $current->modify('+1 day');
         }
 
-        // 4. Overlay booking statuses.
+        // 4. Overlay booking statuses by slot_from and resource.
         $bookingTable = $wpdb->prefix . 'duj_bookings';
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT booking_date, combo_key, status FROM `{$bookingTable}`
+                "SELECT booking_date, slot_from, combo_key, status FROM `{$bookingTable}`
                  WHERE booking_date BETWEEN %s AND %s
                    AND status NOT IN ('cancelled','expired','rejected')
-                 ORDER BY booking_date ASC",
+                 ORDER BY booking_date ASC, slot_from ASC",
                 $from, $to
             ),
             ARRAY_A
         ) ?? [];
 
         foreach ($rows as $r) {
-            $d = $r['booking_date'];
+            $d       = $r['booking_date'];
+            $slotKey = substr($r['slot_from'], 0, 5); // HH:MM
+            $state   = in_array($r['status'], ['confirmed', 'awaiting_confirmation'], true) ? 'booked' : 'partial';
+
             if (!isset($byDate[$d])) {
-                // Booking on an otherwise-closed day — show it.
-                $byDate[$d] = ['sud' => 'available', 'sauna' => 'available'];
+                $byDate[$d] = ['slots' => []];
             }
-            foreach (['sud', 'sauna'] as $res) {
+            if (!isset($byDate[$d]['slots'][$slotKey])) {
+                $byDate[$d]['slots'][$slotKey] = [];
+            }
+            foreach ($allResources as $res) {
                 if (str_contains($r['combo_key'], $res)) {
-                    $byDate[$d][$res] = in_array($r['status'], ['confirmed', 'awaiting_confirmation'], true)
-                        ? 'booked'
-                        : 'partial';
+                    $byDate[$d]['slots'][$slotKey][$res] = $state;
                 }
             }
         }
+
+        // Sort slots by time within each day.
+        foreach ($byDate as &$dateData) {
+            ksort($dateData['slots']);
+        }
+        unset($dateData);
 
         return new \WP_REST_Response($byDate);
     }

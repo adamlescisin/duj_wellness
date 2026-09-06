@@ -46,6 +46,22 @@
 .duj-cal-res--booked { background: #fce8e8; color: #a01313; }
 .duj-cal-res--partial { background: #fff4e0; color: #7a4f00; }
 .duj-cal-res--closed { background: #f0f0f1; color: #72777c; }
+/* ── Calendar slot matrix ────────────────────────────────────────────────── */
+.duj-cal-matrix { width: 100%; border-collapse: collapse; margin-top: 3px; font-size: .7rem; table-layout: fixed; }
+.duj-cal-matrix__corner { width: 34px; }
+.duj-cal-matrix__res-header { text-align: center; padding: 1px 2px; font-size: .82rem; line-height: 1; }
+.duj-cal-matrix__time { font-size: .65rem; color: #50575e; white-space: nowrap; padding: 2px 2px 2px 0; font-variant-numeric: tabular-nums; }
+.duj-cal-matrix__cell { border-radius: 3px; padding: 2px 0; width: 50%; }
+.duj-cal-matrix__cell--available { background: #e6f4ea; }
+.duj-cal-matrix__cell--booked    { background: #fce8e8; }
+.duj-cal-matrix__cell--partial   { background: #fff4e0; }
+.duj-cal-matrix__cell--closed    { background: #f0f0f1; }
+@media (max-width: 900px) {
+    .duj-cal-matrix { font-size: .62rem; }
+    .duj-cal-matrix__time { font-size: .58rem; }
+    .duj-cal-matrix__corner { width: 28px; }
+}
+
 /* keep dot classes for legend only */
 .duj-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .duj-dot--available { background: #34a853; }
