@@ -213,6 +213,25 @@ final class Settings implements SettingsInterface
         return (string) $this->get('admin_email', get_option('admin_email', ''));
     }
 
+    /**
+     * E-mailové adresy pro admin notifikace o nových rezervacích.
+     * Uloženy jako newline-oddělený řetězec, vráceny jako pole validních adres.
+     *
+     * @return string[]
+     */
+    public function adminNotifyEmails(): array
+    {
+        $raw = (string) $this->get('admin_notify_emails', '');
+        if ($raw === '') {
+            return [];
+        }
+        $lines = preg_split('/[\r\n,]+/', $raw) ?: [];
+        return array_values(array_filter(
+            array_map(static fn(string $e) => trim($e), $lines),
+            static fn(string $e) => is_email($e),
+        ));
+    }
+
     public function contactEmail(): string
     {
         return (string) $this->get('contact_email', 'domecekujosefa@gmail.com');
