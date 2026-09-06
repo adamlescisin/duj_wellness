@@ -324,25 +324,18 @@ async function renderMonth(calWrap, year, month) {
     let disabled = false;
     let clickable = false;
 
+    // A day is bookable only if at least one slot has at least one available combo.
+    // This is checked directly from slot data rather than trusting the `status` string,
+    // so stale API caches or unexpected status values don't produce phantom green days.
+    const hasBookable = !!(dayInfo?.slots?.some(s => (s.available_combos?.length ?? 0) > 0));
+
     if (isPast || isBeyond) {
       cls += ' duj-calendar__day--past';
       disabled = true;
-    } else if (!dayInfo || dayInfo.status === 'closed') {
+    } else if (!hasBookable) {
       cls += ' duj-calendar__day--closed';
       disabled = true;
       ariaLabel += ` — ${i18n.closed}`;
-    } else if (dayInfo.status === 'fully_booked') {
-      cls += ' duj-calendar__day--booked';
-      disabled = true;
-      ariaLabel += ` — ${i18n.fullyBooked}`;
-    } else if (dayInfo.status === 'reserved') {
-      cls += ' duj-calendar__day--reserved';
-      disabled = true;
-      ariaLabel += ` — ${i18n.reserved}`;
-    } else if (dayInfo.status === 'partial') {
-      cls += ' duj-calendar__day--partial';
-      clickable = true;
-      ariaLabel += ` — ${i18n.partial}`;
     } else {
       cls += ' duj-calendar__day--available';
       clickable = true;
