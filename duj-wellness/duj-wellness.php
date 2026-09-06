@@ -3,7 +3,7 @@
  * Plugin Name:       Duj Wellness — Rezervační systém
  * Plugin URI:        https://domecekujosefa.cz
  * Description:       Rezervace koupacího sudu a sauny s online platbou přes Stripe.
- * Version:           0.1.3
+ * Version:           0.2.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Domeček u Josefa
@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 defined('ABSPATH') || exit;
 
-define('DUJ_WELLNESS_VERSION', '0.1.9');
+define('DUJ_WELLNESS_VERSION', '0.2.0');
 define('DUJ_WELLNESS_FILE', __FILE__);
 define('DUJ_WELLNESS_DIR', plugin_dir_path(__FILE__));
 define('DUJ_WELLNESS_URL', plugin_dir_url(__FILE__));
