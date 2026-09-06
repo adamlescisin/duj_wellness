@@ -192,6 +192,42 @@ final class SettingsPage
                     </div>
                 </div>
 
+                <!-- GitHub Deploy -->
+                <div class="duj-settings-section">
+                    <h3><?= esc_html__('GitHub — automatický deploy', 'duj-wellness') ?></h3>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Webhook URL', 'duj-wellness') ?></label>
+                        <div>
+                            <code id="duj-deploy-url"><?= esc_html(rest_url('duj/v1/deploy')) ?></code>
+                            <button type="button" class="button" id="duj-copy-deploy-url"><?= esc_html__('Kopírovat', 'duj-wellness') ?></button>
+                            <p class="description"><?= esc_html__('Zadejte tuto URL do GitHub → Settings → Webhooks. Content type: application/json. Událost: Just the push event.', 'duj-wellness') ?></p>
+                        </div>
+                    </div>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Webhook secret', 'duj-wellness') ?></label>
+                        <div>
+                            <?php if (defined('DUJ_DEPLOY_SECRET') && DUJ_DEPLOY_SECRET !== ''): ?>
+                                <span class="duj-masked-key"><?= esc_html__('Nastaveno v wp-config.php jako DUJ_DEPLOY_SECRET.', 'duj-wellness') ?></span>
+                            <?php else: ?>
+                                <input type="password" name="deploy_secret"
+                                    value="<?= esc_attr((string) $s->get('deploy_secret', '')) ?>"
+                                    placeholder="<?= esc_attr__('Tajný klíč pro ověření požadavků z GitHubu', 'duj-wellness') ?>"
+                                    autocomplete="new-password">
+                                <p class="description"><?= esc_html__('Pro vyšší bezpečnost nastavte DUJ_DEPLOY_SECRET v wp-config.php místo zde.', 'duj-wellness') ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Větev', 'duj-wellness') ?></label>
+                        <div>
+                            <input type="text" name="deploy_branch"
+                                value="<?= esc_attr($s->deployBranch()) ?>"
+                                placeholder="main">
+                            <p class="description"><?= esc_html__('Změny se natáhnou jen při push do této větve.', 'duj-wellness') ?></p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Ladění -->
                 <div class="duj-settings-section">
                     <h3><?= esc_html__('Ladění', 'duj-wellness') ?></h3>
@@ -204,7 +240,16 @@ final class SettingsPage
                 <p><button type="submit" class="button button-primary button-large"><?= esc_html__('Uložit nastavení', 'duj-wellness') ?></button></p>
             </form>
         </div>
-        <script>document.body.dataset.dujPage = 'settings';</script>
+        <script>
+        document.body.dataset.dujPage = 'settings';
+        document.getElementById('duj-copy-deploy-url')?.addEventListener('click', function() {
+            const url = document.getElementById('duj-deploy-url')?.textContent ?? '';
+            navigator.clipboard.writeText(url).then(() => {
+                this.textContent = '<?= esc_js(__('Zkopírováno!', 'duj-wellness')) ?>';
+                setTimeout(() => { this.textContent = '<?= esc_js(__('Kopírovat', 'duj-wellness')) ?>'; }, 2000);
+            });
+        });
+        </script>
         <?php
     }
 }

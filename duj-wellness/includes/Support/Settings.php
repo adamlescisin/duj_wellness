@@ -337,6 +337,22 @@ final class Settings implements SettingsInterface
         return (string) $this->get('sms_sender', '');
     }
 
+    // ── GitHub Deploy ────────────────────────────────────────────────────────
+
+    /** Sdílené tajemství pro ověření GitHub webhooku (HMAC-SHA256). */
+    public function deploySecret(): string
+    {
+        return defined('DUJ_DEPLOY_SECRET')
+            ? DUJ_DEPLOY_SECRET
+            : (string) $this->get('deploy_secret', '');
+    }
+
+    /** Větev, ze které se táhnou změny (výchozí: main). */
+    public function deployBranch(): string
+    {
+        return (string) $this->get('deploy_branch', 'main');
+    }
+
     // ── Ladicí režim ─────────────────────────────────────────────────────────
 
     public function debugMode(): bool

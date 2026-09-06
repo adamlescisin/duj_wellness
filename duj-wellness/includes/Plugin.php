@@ -55,6 +55,7 @@ use Duj\Wellness\Rest\AdminStatsController;
 use Duj\Wellness\Rest\AdminTemplatesController;
 use Duj\Wellness\Rest\AvailabilityController;
 use Duj\Wellness\Rest\BookingsController;
+use Duj\Wellness\Rest\DeployController;
 use Duj\Wellness\Rest\WebhooksController;
 use Duj\Wellness\Support\RateLimiter;
 use Duj\Wellness\Support\Settings;
@@ -177,6 +178,9 @@ final class Plugin
 
         (new AvailabilityController($availSvc, $tierResolver, $settings))->register();
         (new AccessCodeController($codeSvc, new RateLimiter()))->register();
+
+        // GitHub auto-deploy — public endpoint secured by HMAC-SHA256.
+        (new DeployController())->register();
 
         // Admin-only controllers — registered unconditionally so they work even without Stripe.
         (new AdminScheduleController())->register();
