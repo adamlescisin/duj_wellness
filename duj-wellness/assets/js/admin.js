@@ -667,10 +667,125 @@ function initSchedulePage() {
     });
 }
 
+// ── Stats page ────────────────────────────────────────────────────────────────
+
+async function initStatsPage() {
+    const periodSelect = document.getElementById('duj-stats-period');
+    const loadingEl    = document.getElementById('duj-stats-loading');
+
+    function fmtMoney(minor) {
+        return Math.round(minor / 100).toLocaleString('cs-CZ') + ' Kč';
+    }
+
+    const STATUS_LABELS_CS = {
+        pending_payment: 'Čeká na platbu', awaiting_confirmation: 'Čeká na potvrzení',
+        confirmed: 'Potvrzeno', completed: 'Dokončeno', cancelled: 'Zrušeno',
+        expired: 'Expirováno', rejected: 'Zamítnuto', no_show: 'Nedostavení',
+    };
+
+    function renderStats(data) {
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        set('kpi-revenue',   fmtMoney(data.total_revenue ?? 0));
+        set('kpi-avg',       fmtMoney(data.avg_booking   ?? 0));
+        set('kpi-customers', data.unique_customers ?? 0);
+        set('kpi-confirmed', data.by_status?.confirmed ?? 0);
+
+        const tbodyMonthly = document.getElementById('tbody-monthly');
+        if (tbodyMonthly) {
+            tbodyMonthly.innerHTML = (data.monthly ?? []).length
+                ? data.monthly.map(r => `<tr><td>${escHtml(r.month)}</td><td>${r.bookings}</td><td>${fmtMoney(r.revenue)}</td></tr>`).join('')
+                : '<tr><td colspan="3">—</td></tr>';
+        }
+
+        const tbodyService = document.getElementById('tbody-service');
+        if (tbodyService) {
+            tbodyService.innerHTML = (data.by_service ?? []).length
+                ? data.by_service.map(r => `<tr><td>${escHtml(r.combo_key)}</td><td>${r.bookings}</td><td>${fmtMoney(r.revenue)}</td></tr>`).join('')
+                : '<tr><td colspan="3">—</td></tr>';
+        }
+
+        const tbodyStatus = document.getElementById('tbody-status');
+        if (tbodyStatus) {
+            const entries = Object.entries(data.by_status ?? {});
+            tbodyStatus.innerHTML = entries.length
+                ? entries.map(([st, cnt]) => `<tr><td>${escHtml(STATUS_LABELS_CS[st] ?? st)}</td><td>${cnt}</td></tr>`).join('')
+                : '<tr><td colspan="2">—</td></tr>';
+        }
+    }
+
+    async function loadStats(period) {
+        if (loadingEl) loadingEl.hidden = false;
+        try {
+            const data = await apiFetch(`admin/stats?period=${encodeURIComponent(period)}`);
+            renderStats(data);
+        } catch (err) {
+            showNotice(err.message, 'error');
+        } finally {
+            if (loadingEl) loadingEl.hidden = true;
+        }
+    }
+
+    periodSelect?.addEventListener('change', () => loadStats(periodSelect.value));
+    await loadStats(periodSelect?.value ?? 'year');
+}
+
 // ── Pricing page ──────────────────────────────────────────────────────────────
 
 function initPricingPage() {
     initTabs(document.getElementById('duj-pricing-page') ?? document);
+
+    // Tier bulk save
+    const tiersForm = document.getElementById('duj-tiers-form');
+    tiersForm?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const tiers = [...tiersForm.querySelectorAll('tr[data-tier-id]')].map(row => ({
+            id:            parseInt(row.dataset.tierId),
+            label:         row.querySelector('[name="label"]')?.value.trim() ?? '',
+            requires_code: row.querySelector('[name="requires_code"]')?.checked ? 1 : 0,
+            show_in_form:  row.querySelector('[name="show_in_form"]')?.checked  ? 1 : 0,
+            is_active:     row.querySelector('[name="is_active"]')?.checked     ? 1 : 0,
+            cutoff_mode:   row.querySelector('[name="cutoff_mode"]')?.value ?? 'inherit',
+            sort_order:    parseInt(row.querySelector('[name="sort_order"]')?.value ?? '0'),
+        }));
+        try {
+            await apiFetch('admin/price-tiers/bulk', { method: 'POST', body: JSON.stringify({ tiers }) });
+            showNotice('Hladiny uloženy.');
+        } catch (err) { showNotice(err.message, 'error'); }
+    });
+
+    // Add new tier
+    const addTierForm = document.getElementById('duj-add-tier-form');
+    addTierForm?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(addTierForm);
+        try {
+            await apiFetch('admin/price-tiers', {
+                method: 'POST',
+                body: JSON.stringify({
+                    slug:          fd.get('slug'),
+                    label:         fd.get('label'),
+                    requires_code: fd.get('requires_code') ? 1 : 0,
+                    show_in_form:  fd.get('show_in_form')  ? 1 : 0,
+                    cutoff_mode:   fd.get('cutoff_mode'),
+                    sort_order:    parseInt(fd.get('sort_order') || '0'),
+                }),
+            });
+            showNotice('Hladina přidána.');
+            setTimeout(() => location.reload(), 1200);
+        } catch (err) { showNotice(err.message, 'error'); }
+    });
+
+    // Delete tier
+    document.querySelectorAll('[data-delete-tier]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('Smazat hladinu? Tato akce je nevratná.')) return;
+            try {
+                await apiFetch(`admin/price-tiers/${btn.dataset.deleteTier}`, { method: 'DELETE' });
+                btn.closest('tr')?.remove();
+                showNotice('Hladina smazána.');
+            } catch (err) { showNotice(err.message, 'error'); }
+        });
+    });
 
     // Price matrix save
     const matrixForm = document.getElementById('duj-price-matrix-form');
@@ -917,6 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'calendar':      initCalendarPage();       break;
         case 'schedule':      initSchedulePage();       break;
         case 'pricing':       initPricingPage();        break;
+        case 'stats':         initStatsPage();          break;
         case 'accommodation': initAccommodationPage();  break;
         case 'emails':        initEmailsPage();         break;
         case 'notifications': initNotificationsPage();  break;

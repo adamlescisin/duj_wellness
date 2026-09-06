@@ -13,6 +13,16 @@ final class AdminPricingController
     {
         $cb = fn($m, $h) => ['methods' => $m, 'callback' => [$this, $h], 'permission_callback' => [$this, 'can']];
 
+        register_rest_route('duj/v1', '/admin/price-tiers', [
+            $cb('GET',  'listTiers'),
+            $cb('POST', 'createTier'),
+        ]);
+        register_rest_route('duj/v1', '/admin/price-tiers/bulk', [
+            $cb('POST', 'saveTiersBulk'),
+        ]);
+        register_rest_route('duj/v1', '/admin/price-tiers/(?P<id>\d+)', [
+            $cb('DELETE', 'deleteTier'),
+        ]);
         register_rest_route('duj/v1', '/admin/prices/bulk', [
             $cb('POST', 'savePricesBulk'),
         ]);
@@ -28,6 +38,98 @@ final class AdminPricingController
     public function can(): bool
     {
         return current_user_can('duj_manage_bookings');
+    }
+
+    public function listTiers(): \WP_REST_Response
+    {
+        global $wpdb;
+        $rows = $wpdb->get_results(
+            "SELECT * FROM `{$wpdb->prefix}duj_price_tiers` ORDER BY sort_order ASC",
+            ARRAY_A
+        ) ?? [];
+        return new \WP_REST_Response($rows);
+    }
+
+    public function createTier(\WP_REST_Request $req): \WP_REST_Response|\WP_Error
+    {
+        global $wpdb;
+        $body  = $req->get_json_params();
+        $slug  = sanitize_key($body['slug'] ?? '');
+        $label = sanitize_text_field($body['label'] ?? '');
+
+        if ($slug === '' || $label === '') {
+            return new \WP_Error('missing_fields', 'Chybí slug nebo label.', ['status' => 400]);
+        }
+
+        $cutoffMode = sanitize_key($body['cutoff_mode'] ?? 'inherit');
+        if (!in_array($cutoffMode, ['inherit', 'lead_time_only', 'none'], true)) {
+            $cutoffMode = 'inherit';
+        }
+
+        $table = $wpdb->prefix . 'duj_price_tiers';
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM `{$table}` WHERE slug = %s", $slug));
+        if ($exists) {
+            return new \WP_Error('slug_exists', 'Hladina s tímto slugem již existuje.', ['status' => 409]);
+        }
+
+        $wpdb->insert($table, [
+            'slug'          => $slug,
+            'label'         => $label,
+            'is_default'    => 0,
+            'requires_code' => (int) !empty($body['requires_code']),
+            'show_in_form'  => isset($body['show_in_form']) ? (int) $body['show_in_form'] : 1,
+            'cutoff_mode'   => $cutoffMode,
+            'sort_order'    => max(0, (int) ($body['sort_order'] ?? 10)),
+            'is_active'     => 1,
+        ]);
+
+        return new \WP_REST_Response(['id' => $wpdb->insert_id, 'slug' => $slug], 201);
+    }
+
+    public function saveTiersBulk(\WP_REST_Request $req): \WP_REST_Response|\WP_Error
+    {
+        global $wpdb;
+        $body    = $req->get_json_params();
+        $tiers   = (array) ($body['tiers'] ?? []);
+        $table   = $wpdb->prefix . 'duj_price_tiers';
+        $updated = 0;
+
+        foreach ($tiers as $t) {
+            $id    = (int) ($t['id'] ?? 0);
+            $label = sanitize_text_field($t['label'] ?? '');
+            if ($id <= 0 || $label === '') {
+                continue;
+            }
+
+            $cutoffMode = sanitize_key($t['cutoff_mode'] ?? 'inherit');
+            if (!in_array($cutoffMode, ['inherit', 'lead_time_only', 'none'], true)) {
+                $cutoffMode = 'inherit';
+            }
+
+            $wpdb->update($table, [
+                'label'         => $label,
+                'requires_code' => (int) !empty($t['requires_code']),
+                'show_in_form'  => (int) !empty($t['show_in_form']),
+                'is_active'     => (int) !empty($t['is_active']),
+                'cutoff_mode'   => $cutoffMode,
+                'sort_order'    => max(0, (int) ($t['sort_order'] ?? 0)),
+            ], ['id' => $id]);
+
+            $updated++;
+        }
+
+        return new \WP_REST_Response(['updated' => $updated]);
+    }
+
+    public function deleteTier(\WP_REST_Request $req): \WP_REST_Response
+    {
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . 'duj_price_tiers',
+            ['is_active' => 0],
+            ['id' => (int) $req['id']]
+        );
+        return new \WP_REST_Response(['deactivated' => true]);
     }
 
     public function savePricesBulk(\WP_REST_Request $req): \WP_REST_Response|\WP_Error
