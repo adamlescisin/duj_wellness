@@ -9,6 +9,12 @@ use Duj\Wellness\Support\Settings;
 
 /**
  * Admin REST endpointy pro správu e-mailových šablon.
+ *
+ * Šablony se ukládají do Settings blobu (duj_settings) pod klíči:
+ *   email_template_{slug}  — HTML tělo
+ *   email_subject_{slug}   — předmět
+ *
+ * NotificationService čte přesně tyto klíče přes Settings::instance()->get().
  */
 final class AdminTemplatesController
 {
@@ -49,14 +55,17 @@ final class AdminTemplatesController
             return new \WP_Error('invalid_template', 'Neplatná šablona.', ['status' => 404]);
         }
 
-        $option   = get_option('duj_email_template_' . $slug, []);
+        $settings = Settings::instance();
         $defaults = TemplateRenderer::getDefaults($slug);
 
+        $storedBody    = $settings->get('email_template_' . $slug);
+        $storedSubject = $settings->get('email_subject_' . $slug);
+
         return new \WP_REST_Response([
-            'slug'            => $slug,
-            'subject'         => $option['subject'] ?? $defaults['subject'] ?? '',
-            'body'            => $option['body']    ?? $defaults['body']    ?? '',
-            'is_customized'   => !empty($option),
+            'slug'          => $slug,
+            'subject'       => ($storedSubject !== null && $storedSubject !== '') ? (string) $storedSubject : ($defaults['subject'] ?? ''),
+            'body'          => ($storedBody    !== null && $storedBody    !== '') ? (string) $storedBody    : ($defaults['body']    ?? ''),
+            'is_customized' => $storedBody !== null && $storedBody !== '',
         ]);
     }
 
@@ -67,18 +76,18 @@ final class AdminTemplatesController
             return new \WP_Error('invalid_template', 'Neplatná šablona.', ['status' => 404]);
         }
 
-        $body    = $req->get_json_params();
-        $subject = sanitize_text_field($body['subject'] ?? '');
+        $body     = $req->get_json_params();
+        $subject  = sanitize_text_field($body['subject'] ?? '');
         $tmplBody = wp_kses_post($body['body'] ?? '');
 
         if ($subject === '' || $tmplBody === '') {
             return new \WP_Error('missing_fields', 'Chybí subject nebo body.', ['status' => 400]);
         }
 
-        update_option('duj_email_template_' . $slug, [
-            'subject' => $subject,
-            'body'    => $tmplBody,
-        ], false);
+        $settings = Settings::instance();
+        $settings->set('email_template_' . $slug, $tmplBody);
+        $settings->set('email_subject_' . $slug, $subject);
+        $settings->save();
 
         return new \WP_REST_Response(['saved' => true]);
     }
@@ -90,7 +99,10 @@ final class AdminTemplatesController
             return new \WP_Error('invalid_template', 'Neplatná šablona.', ['status' => 404]);
         }
 
-        delete_option('duj_email_template_' . $slug);
+        $settings = Settings::instance();
+        $settings->set('email_template_' . $slug, null);
+        $settings->set('email_subject_' . $slug, null);
+        $settings->save();
 
         return new \WP_REST_Response(['reset' => true]);
     }
@@ -110,17 +122,19 @@ final class AdminTemplatesController
 
         $settings = Settings::instance();
         $from     = $settings->contactEmail() ?: get_bloginfo('admin_email');
-        $option   = get_option('duj_email_template_' . $slug, []);
         $defaults = TemplateRenderer::getDefaults($slug);
 
-        $subject = $option['subject'] ?? $defaults['subject'] ?? "Test: {$slug}";
-        $tmplBody = $option['body']   ?? $defaults['body']    ?? "(prázdná šablona)";
+        $storedSubject = $settings->get('email_subject_' . $slug);
+        $storedBody    = $settings->get('email_template_' . $slug);
+
+        $subject  = ($storedSubject !== null && $storedSubject !== '') ? (string) $storedSubject : ($defaults['subject'] ?? "Test: {$slug}");
+        $tmplBody = ($storedBody    !== null && $storedBody    !== '') ? (string) $storedBody    : ($defaults['body']    ?? "(prázdná šablona)");
 
         $sampleData = [];
         foreach (TemplateRenderer::getSamplePlaceholders() as $placeholder => $value) {
             $sampleData[trim($placeholder, '{}')] = $value;
         }
-        $subject = str_replace(array_keys(TemplateRenderer::getSamplePlaceholders()), array_values(TemplateRenderer::getSamplePlaceholders()), $subject);
+        $subject  = str_replace(array_keys(TemplateRenderer::getSamplePlaceholders()), array_values(TemplateRenderer::getSamplePlaceholders()), $subject);
         $rendered = (new TemplateRenderer())->render($tmplBody, $sampleData);
 
         $headers = [

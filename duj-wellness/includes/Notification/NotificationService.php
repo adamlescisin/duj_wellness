@@ -44,7 +44,7 @@ final class NotificationService
             'site_name'    => $siteName,
             'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
-            'booking_date' => $booking->bookingDate,
+            'booking_date' => $this->formatDate($booking->bookingDate),
             'slot_from'    => $booking->slotFrom,
             'slot_to'      => $booking->slotTo,
             'resource'     => $booking->comboKey,
@@ -52,7 +52,7 @@ final class NotificationService
             'cancel_url'   => $cancelUrl,
         ];
 
-        $subjectTpl = (string) $this->settings->get('email_subject_awaiting', 'Vaše rezervace {{reference}} čeká na potvrzení');
+        $subjectTpl = (string) $this->settings->get('email_subject_awaiting_confirmation', 'Vaše rezervace {{reference}} čeká na potvrzení');
         $bodyTpl    = $this->getTemplate('awaiting_confirmation');
         $subject    = $this->renderer->renderSubject($subjectTpl, $data);
         $rendered   = $this->renderer->render($bodyTpl, $data);
@@ -79,7 +79,7 @@ final class NotificationService
             'site_name'    => $siteName,
             'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
-            'booking_date' => $booking->bookingDate,
+            'booking_date' => $this->formatDate($booking->bookingDate),
             'slot_from'    => $booking->slotFrom,
             'slot_to'      => $booking->slotTo,
             'resource'     => $booking->comboKey,
@@ -110,7 +110,7 @@ final class NotificationService
             'site_name'    => $siteName,
             'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
-            'booking_date' => $booking->bookingDate,
+            'booking_date' => $this->formatDate($booking->bookingDate),
             'slot_from'    => $booking->slotFrom,
             'slot_to'      => $booking->slotTo,
             'resource'     => $booking->comboKey,
@@ -167,7 +167,7 @@ final class NotificationService
             'site_name'      => $siteName,
             'logo_url'       => (string) $this->settings->get('logo_url', ''),
             'reference'      => $booking->reference,
-            'booking_date'   => $booking->bookingDate,
+            'booking_date'   => $this->formatDate($booking->bookingDate),
             'slot_from'      => $booking->slotFrom,
             'slot_to'        => $booking->slotTo,
             'resource'       => $booking->comboKey,
@@ -181,10 +181,10 @@ final class NotificationService
         ];
 
         $subjectTpl = (string) $this->settings->get(
-            'email_subject_admin_new_booking',
+            'email_subject_admin_booking_new',
             '[Wellness] Nová rezervace {{reference}}'
         );
-        $bodyTpl  = $this->getTemplate('admin_new_booking');
+        $bodyTpl  = $this->getTemplate('admin_booking_new');
         $subject  = $this->renderer->renderSubject($subjectTpl, $data);
         $rendered = $this->renderer->render($bodyTpl, $data);
 
@@ -222,7 +222,7 @@ final class NotificationService
             'site_name'       => $siteName,
             'logo_url'        => (string) $this->settings->get('logo_url', ''),
             'reference'       => $booking->reference,
-            'booking_date'    => $booking->bookingDate,
+            'booking_date'    => $this->formatDate($booking->bookingDate),
             'slot_from'       => $booking->slotFrom,
             'slot_to'         => $booking->slotTo,
             'resource'        => $booking->comboKey,
@@ -265,7 +265,7 @@ final class NotificationService
             "Prostředí: %s\n" .
             "Zákazník: %s",
             htmlspecialchars($booking->reference, ENT_XML1),
-            htmlspecialchars($booking->bookingDate, ENT_XML1),
+            htmlspecialchars($this->formatDate($booking->bookingDate), ENT_XML1),
             htmlspecialchars($booking->slotFrom, ENT_XML1),
             htmlspecialchars($booking->slotTo, ENT_XML1),
             htmlspecialchars($booking->comboKey, ENT_XML1),
@@ -359,6 +359,15 @@ final class NotificationService
             . '</div>';
 
         return str_replace('{{qr_block}}', $block, $template);
+    }
+
+    private function formatDate(string $isoDate): string
+    {
+        try {
+            return (new \DateTimeImmutable($isoDate))->format('d.m.Y');
+        } catch (\Exception) {
+            return $isoDate;
+        }
     }
 
     private function restActionUrl(): string

@@ -131,8 +131,8 @@ final class TemplateRenderer
     public static function getSamplePlaceholders(): array
     {
         return [
-            '{{reference}}'      => 'WEL-20260905-ABC1',
-            '{{booking_date}}'   => '2026-09-20',
+            '{{reference}}'      => 'W260001',
+            '{{booking_date}}'   => '20.09.2026',
             '{{slot_from}}'      => '16:00',
             '{{slot_to}}'        => '18:00',
             '{{combo_key}}'      => 'sud+sauna',

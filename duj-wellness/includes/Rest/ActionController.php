@@ -135,10 +135,10 @@ final class ActionController
         try {
             $currentStatus = BookingStatus::from($booking->status);
 
-            // Admin "confirm" token is created when booking is still pending_payment
-            // (before payment arrives). If the booking hasn't moved to awaiting_confirmation
-            // yet we perform the intermediate step first so the transition matrix is satisfied.
-            if ($action === 'confirm' && $currentStatus === BookingStatus::PENDING_PAYMENT) {
+            // Admin tokens are created when booking may still be pending_payment (e.g. bank
+            // transfer). Step through awaiting_confirmation first so the transition matrix
+            // is satisfied for both confirm and reject.
+            if (in_array($action, ['confirm', 'reject'], true) && $currentStatus === BookingStatus::PENDING_PAYMENT) {
                 $this->bookingService->transition($booking->id, BookingStatus::AWAITING_CONFIRMATION);
             }
 
