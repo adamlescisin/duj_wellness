@@ -51,15 +51,6 @@ final class BookingsListTable extends \WP_List_Table
         ];
     }
 
-    protected function get_bulk_actions(): array
-    {
-        return [
-            'confirm' => __('Potvrdit', 'duj-wellness'),
-            'reject'  => __('Zamítnout', 'duj-wellness'),
-            'cancel'  => __('Zrušit', 'duj-wellness'),
-        ];
-    }
-
     public function prepare_items(): void
     {
         global $wpdb;
