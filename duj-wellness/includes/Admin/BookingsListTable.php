@@ -29,6 +29,7 @@ final class BookingsListTable extends \WP_List_Table
     {
         return [
             'cb'         => '<input type="checkbox" />',
+            'id'         => '#',
             'reference'  => __('Reference', 'duj-wellness'),
             'date'       => __('Datum a čas', 'duj-wellness'),
             'service'    => __('Služba', 'duj-wellness'),
@@ -43,8 +44,9 @@ final class BookingsListTable extends \WP_List_Table
     protected function get_sortable_columns(): array
     {
         return [
+            'id'        => ['id', true],
             'reference' => ['reference', false],
-            'date'      => ['booking_date', true],
+            'date'      => ['booking_date', false],
             'amount'    => ['amount_minor', false],
         ];
     }
@@ -100,9 +102,9 @@ final class BookingsListTable extends \WP_List_Table
         }
 
         $where_sql = implode(' AND ', $where);
-        $orderby   = in_array($_GET['orderby'] ?? '', ['reference','booking_date','amount_minor'], true)
+        $orderby   = in_array($_GET['orderby'] ?? '', ['id','reference','booking_date','amount_minor'], true)
             ? sanitize_sql_orderby($_GET['orderby'])
-            : 'booking_date';
+            : 'id';
         $order     = strtoupper($_GET['order'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
         $offset    = ($current_page - 1) * $per_page;
 
@@ -135,6 +137,11 @@ final class BookingsListTable extends \WP_List_Table
         return '<input type="checkbox" name="booking_ids[]" value="' . (int) $item['id'] . '" />';
     }
 
+    protected function column_id(array $item): string
+    {
+        return '<strong>' . (int) $item['id'] . '</strong>';
+    }
+
     protected function column_reference(array $item): string
     {
         $ref = esc_html($item['reference']);
@@ -143,7 +150,12 @@ final class BookingsListTable extends \WP_List_Table
 
     protected function column_date(array $item): string
     {
-        return esc_html($item['booking_date']) . '<br><small>' . esc_html($item['slot_from']) . '–' . esc_html($item['slot_to']) . '</small>';
+        try {
+            $formatted = (new \DateTimeImmutable($item['booking_date']))->format('d.m.Y');
+        } catch (\Exception) {
+            $formatted = $item['booking_date'];
+        }
+        return esc_html($formatted) . '<br><small>' . esc_html($item['slot_from']) . '–' . esc_html($item['slot_to']) . '</small>';
     }
 
     protected function column_service(array $item): string
