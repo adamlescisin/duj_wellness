@@ -299,17 +299,52 @@ async function initCalendarPage() {
             if (isPast) cell.classList.add('past');
             if (dateStr === todayStr) cell.classList.add('today');
 
-            const dayInfo = avail[dateStr] ?? {};
-            cell.innerHTML = `<div class="duj-cal-day">${d}</div><div class="duj-cal-resources"></div>`;
-            const resContainer = cell.querySelector('.duj-cal-resources');
-            RESOURCES.forEach(({ key, icon, label }) => {
-                const state = dayInfo[key] ?? 'closed';
-                const chip = document.createElement('div');
-                chip.className = `duj-cal-res duj-cal-res--${state}`;
-                chip.innerHTML = `<span class="duj-cal-res-icon">${icon}</span><span class="duj-cal-res-label">${label}</span>`;
-                chip.title = `${label}: ${STATE_LABELS_CS[state] ?? state}`;
-                resContainer.appendChild(chip);
-            });
+            const dayInfo  = avail[dateStr] ?? {};
+            const slots    = dayInfo.slots ?? {};
+            const slotTimes = Object.keys(slots).sort();
+
+            const dayNum = document.createElement('div');
+            dayNum.className = 'duj-cal-day';
+            dayNum.textContent = String(d);
+            cell.appendChild(dayNum);
+
+            if (slotTimes.length > 0) {
+                // Build time × service matrix
+                const matrix = document.createElement('table');
+                matrix.className = 'duj-cal-matrix';
+
+                // Header: service icons
+                const thead = matrix.createTHead();
+                const hRow  = thead.insertRow();
+                const corner = document.createElement('th');
+                corner.className = 'duj-cal-matrix__corner';
+                hRow.appendChild(corner);
+                RESOURCES.forEach(({ icon, label }) => {
+                    const th = document.createElement('th');
+                    th.className = 'duj-cal-matrix__res-header';
+                    th.textContent = icon;
+                    th.title = label;
+                    hRow.appendChild(th);
+                });
+
+                // Rows: one per slot time
+                const tbody = matrix.createTBody();
+                slotTimes.forEach(time => {
+                    const slotData = slots[time] ?? {};
+                    const row = tbody.insertRow();
+                    const tc = row.insertCell();
+                    tc.className = 'duj-cal-matrix__time';
+                    tc.textContent = time;
+                    RESOURCES.forEach(({ key, label }) => {
+                        const state = slotData[key] ?? 'closed';
+                        const td = row.insertCell();
+                        td.className = `duj-cal-matrix__cell duj-cal-matrix__cell--${state}`;
+                        td.title = `${time} · ${label}: ${STATE_LABELS_CS[state] ?? state}`;
+                    });
+                });
+
+                cell.appendChild(matrix);
+            }
 
             if (!isPast) {
                 cell.addEventListener('click', () => openCalendarDayModal(dateStr, dayInfo));
@@ -339,13 +374,16 @@ function openCalendarDayModal(date, dayInfo) {
         openManualBookingModal(date);
     });
 
+    const COMBO_LABELS = { sud: '🛁 Sud', sauna: '🔥 Sauna', 'sauna+sud': '🛁🔥 Sauna + Sud' };
+
     apiFetch(`admin/calendar/day?date=${date}`).then(data => {
         const el = overlay.querySelector('#duj-day-bookings');
         if (!data.bookings?.length) { el.textContent = 'Žádné rezervace.'; return; }
-        el.innerHTML = `<table class="widefat fixed"><thead><tr><th>Ref</th><th>Čas</th><th>Zákazník</th><th>Stav</th></tr></thead><tbody>
+        el.innerHTML = `<table class="widefat fixed"><thead><tr><th>Ref</th><th>Čas</th><th>Služba</th><th>Zákazník</th><th>Stav</th></tr></thead><tbody>
             ${data.bookings.map(b => `<tr>
                 <td><a href="#" data-booking-detail="${b.id}">${escHtml(b.reference)}</a></td>
-                <td>${escHtml(b.slot_from)}–${escHtml(b.slot_to)}</td>
+                <td>${escHtml(b.slot_from.slice(0,5))}–${escHtml(b.slot_to.slice(0,5))}</td>
+                <td>${escHtml(COMBO_LABELS[b.combo_key] ?? b.combo_key)}</td>
                 <td>${escHtml(b.customer_email)}</td>
                 <td><span class="duj-badge duj-badge--${b.status}">${STATUS_LABELS[b.status]??b.status}</span></td>
             </tr>`).join('')}</tbody></table>`;
@@ -434,6 +472,8 @@ function initSchedulePage() {
                 slot_minutes: parseInt(fd.get('slot_minutes')),
                 buffer_minutes: parseInt(fd.get('buffer_minutes')),
                 weekdays: [...genForm.querySelectorAll('input[name="weekdays[]"]:checked')].map(c=>parseInt(c.value)),
+                valid_from: fd.get('valid_from') || null,
+                valid_to:   fd.get('valid_to')   || null,
                 dry_run: e.submitter?.value === 'preview',
             };
 
@@ -443,8 +483,11 @@ function initSchedulePage() {
                 });
                 const preview = document.getElementById('duj-slot-preview');
                 if (payload.dry_run) {
+                    const validityNote = (res.valid_from && res.valid_to)
+                        ? ` <em>(platnost ${escHtml(res.valid_from)} – ${escHtml(res.valid_to)})</em>`
+                        : '';
                     preview.style.display = 'block';
-                    preview.innerHTML = `<strong>Náhled ${res.slots.length} slotů:</strong>
+                    preview.innerHTML = `<strong>Náhled ${res.slots.length} slotů${validityNote}:</strong>
                         <ul>${res.slots.map(s=>`<li>${escHtml(s.weekday_label)}: ${escHtml(s.time_from)}–${escHtml(s.time_to)}</li>`).join('')}</ul>`;
                 } else {
                     showNotice(`Vygenerováno ${res.count} pravidel.`);
@@ -616,10 +659,125 @@ function initSchedulePage() {
     });
 }
 
+// ── Stats page ────────────────────────────────────────────────────────────────
+
+async function initStatsPage() {
+    const periodSelect = document.getElementById('duj-stats-period');
+    const loadingEl    = document.getElementById('duj-stats-loading');
+
+    function fmtMoney(minor) {
+        return Math.round(minor / 100).toLocaleString('cs-CZ') + ' Kč';
+    }
+
+    const STATUS_LABELS_CS = {
+        pending_payment: 'Čeká na platbu', awaiting_confirmation: 'Čeká na potvrzení',
+        confirmed: 'Potvrzeno', completed: 'Dokončeno', cancelled: 'Zrušeno',
+        expired: 'Expirováno', rejected: 'Zamítnuto', no_show: 'Nedostavení',
+    };
+
+    function renderStats(data) {
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        set('kpi-revenue',   fmtMoney(data.total_revenue ?? 0));
+        set('kpi-avg',       fmtMoney(data.avg_booking   ?? 0));
+        set('kpi-customers', data.unique_customers ?? 0);
+        set('kpi-confirmed', data.by_status?.confirmed ?? 0);
+
+        const tbodyMonthly = document.getElementById('tbody-monthly');
+        if (tbodyMonthly) {
+            tbodyMonthly.innerHTML = (data.monthly ?? []).length
+                ? data.monthly.map(r => `<tr><td>${escHtml(r.month)}</td><td>${r.bookings}</td><td>${fmtMoney(r.revenue)}</td></tr>`).join('')
+                : '<tr><td colspan="3">—</td></tr>';
+        }
+
+        const tbodyService = document.getElementById('tbody-service');
+        if (tbodyService) {
+            tbodyService.innerHTML = (data.by_service ?? []).length
+                ? data.by_service.map(r => `<tr><td>${escHtml(r.combo_key)}</td><td>${r.bookings}</td><td>${fmtMoney(r.revenue)}</td></tr>`).join('')
+                : '<tr><td colspan="3">—</td></tr>';
+        }
+
+        const tbodyStatus = document.getElementById('tbody-status');
+        if (tbodyStatus) {
+            const entries = Object.entries(data.by_status ?? {});
+            tbodyStatus.innerHTML = entries.length
+                ? entries.map(([st, cnt]) => `<tr><td>${escHtml(STATUS_LABELS_CS[st] ?? st)}</td><td>${cnt}</td></tr>`).join('')
+                : '<tr><td colspan="2">—</td></tr>';
+        }
+    }
+
+    async function loadStats(period) {
+        if (loadingEl) loadingEl.hidden = false;
+        try {
+            const data = await apiFetch(`admin/stats?period=${encodeURIComponent(period)}`);
+            renderStats(data);
+        } catch (err) {
+            showNotice(err.message, 'error');
+        } finally {
+            if (loadingEl) loadingEl.hidden = true;
+        }
+    }
+
+    periodSelect?.addEventListener('change', () => loadStats(periodSelect.value));
+    await loadStats(periodSelect?.value ?? 'year');
+}
+
 // ── Pricing page ──────────────────────────────────────────────────────────────
 
 function initPricingPage() {
     initTabs(document.getElementById('duj-pricing-page') ?? document);
+
+    // Tier bulk save
+    const tiersForm = document.getElementById('duj-tiers-form');
+    tiersForm?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const tiers = [...tiersForm.querySelectorAll('tr[data-tier-id]')].map(row => ({
+            id:            parseInt(row.dataset.tierId),
+            label:         row.querySelector('[name="label"]')?.value.trim() ?? '',
+            requires_code: row.querySelector('[name="requires_code"]')?.checked ? 1 : 0,
+            show_in_form:  row.querySelector('[name="show_in_form"]')?.checked  ? 1 : 0,
+            is_active:     row.querySelector('[name="is_active"]')?.checked     ? 1 : 0,
+            cutoff_mode:   row.querySelector('[name="cutoff_mode"]')?.value ?? 'inherit',
+            sort_order:    parseInt(row.querySelector('[name="sort_order"]')?.value ?? '0'),
+        }));
+        try {
+            await apiFetch('admin/price-tiers/bulk', { method: 'POST', body: JSON.stringify({ tiers }) });
+            showNotice('Hladiny uloženy.');
+        } catch (err) { showNotice(err.message, 'error'); }
+    });
+
+    // Add new tier
+    const addTierForm = document.getElementById('duj-add-tier-form');
+    addTierForm?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(addTierForm);
+        try {
+            await apiFetch('admin/price-tiers', {
+                method: 'POST',
+                body: JSON.stringify({
+                    slug:          fd.get('slug'),
+                    label:         fd.get('label'),
+                    requires_code: fd.get('requires_code') ? 1 : 0,
+                    show_in_form:  fd.get('show_in_form')  ? 1 : 0,
+                    cutoff_mode:   fd.get('cutoff_mode'),
+                    sort_order:    parseInt(fd.get('sort_order') || '0'),
+                }),
+            });
+            showNotice('Hladina přidána.');
+            setTimeout(() => location.reload(), 1200);
+        } catch (err) { showNotice(err.message, 'error'); }
+    });
+
+    // Delete tier
+    document.querySelectorAll('[data-delete-tier]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('Smazat hladinu? Tato akce je nevratná.')) return;
+            try {
+                await apiFetch(`admin/price-tiers/${btn.dataset.deleteTier}`, { method: 'DELETE' });
+                btn.closest('tr')?.remove();
+                showNotice('Hladina smazána.');
+            } catch (err) { showNotice(err.message, 'error'); }
+        });
+    });
 
     // Price matrix save
     const matrixForm = document.getElementById('duj-price-matrix-form');
@@ -866,6 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'calendar':      initCalendarPage();       break;
         case 'schedule':      initSchedulePage();       break;
         case 'pricing':       initPricingPage();        break;
+        case 'stats':         initStatsPage();          break;
         case 'accommodation': initAccommodationPage();  break;
         case 'emails':        initEmailsPage();         break;
         case 'notifications': initNotificationsPage();  break;

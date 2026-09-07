@@ -115,6 +115,7 @@ final class Plugin
         add_action(ExpireHoldsJob::HOOK, [$this, 'runExpireHolds']);
         add_action(SyncAccommodationJob::HOOK, [$this, 'runSyncAccommodation']);
         add_action(RetentionCleanupJob::HOOK, [$this, 'runRetentionCleanup']);
+        add_action('duj_wellness_deploy_execute', [$this, 'runDeploy']);
     }
 
     public function registerGdpr(): void
@@ -223,6 +224,7 @@ final class Plugin
                 $stripeGateway,
                 $settings,
                 $bookingRepo,
+                $notificationSvc,
             ))->register();
 
             // Stripe webhook controller — only when Stripe is available.
@@ -263,6 +265,15 @@ final class Plugin
     public function runRetentionCleanup(): void
     {
         (new RetentionCleanupJob())->run();
+    }
+
+    public function runDeploy(string $transientKey): void
+    {
+        if (!class_exists(\Duj\Wellness\Cron\DeployJob::class)) {
+            error_log('[duj-wellness] DeployJob class not found — skipping async deploy.');
+            return;
+        }
+        (new \Duj\Wellness\Cron\DeployJob())->run($transientKey);
     }
 
     public function runSyncAccommodation(): void

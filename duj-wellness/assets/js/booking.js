@@ -208,11 +208,24 @@ function buildPricingHeader() {
     codeBtn.disabled = true;
     try {
       const res = await apiFetch(`access-codes/validate?code=${encodeURIComponent(code)}`);
-      state.accessCode = code;
+      if (!res.valid) throw new Error('invalid');
+      state.accessCode = res.valid_code ?? code;
       state.tier = res.tier ?? 'public';
       state.codeValid = true;
       feedback.textContent = i18n.validCode;
       feedback.className = 'duj-code-feedback duj-code-feedback--ok';
+      // If a slot is already selected, re-fetch availability with the new code
+      // so state.prices reflects the correct tier (e.g. guest vs public).
+      if (state.selectedDate && state.selectedSlot) {
+        try {
+          const avData = await apiFetch(
+            `availability?from=${state.selectedDate}&to=${state.selectedDate}&code=${encodeURIComponent(state.accessCode)}`
+          );
+          const dayInfo = (avData.days ?? []).find(d => d.date === state.selectedDate);
+          const slot = (dayInfo?.slots ?? []).find(s => s.from === state.selectedSlot.from);
+          if (slot?.prices) state.prices = slot.prices;
+        } catch { /* leave existing prices */ }
+      }
     } catch {
       state.codeValid = false;
       feedback.textContent = i18n.invalidCode;
@@ -324,25 +337,18 @@ async function renderMonth(calWrap, year, month) {
     let disabled = false;
     let clickable = false;
 
+    // A day is bookable only if at least one slot has at least one available combo.
+    // This is checked directly from slot data rather than trusting the `status` string,
+    // so stale API caches or unexpected status values don't produce phantom green days.
+    const hasBookable = !!(dayInfo?.slots?.some(s => (s.available_combos?.length ?? 0) > 0));
+
     if (isPast || isBeyond) {
       cls += ' duj-calendar__day--past';
       disabled = true;
-    } else if (!dayInfo || dayInfo.status === 'closed') {
+    } else if (!hasBookable) {
       cls += ' duj-calendar__day--closed';
       disabled = true;
       ariaLabel += ` — ${i18n.closed}`;
-    } else if (dayInfo.status === 'fully_booked') {
-      cls += ' duj-calendar__day--booked';
-      disabled = true;
-      ariaLabel += ` — ${i18n.fullyBooked}`;
-    } else if (dayInfo.status === 'reserved') {
-      cls += ' duj-calendar__day--reserved';
-      disabled = true;
-      ariaLabel += ` — ${i18n.reserved}`;
-    } else if (dayInfo.status === 'partial') {
-      cls += ' duj-calendar__day--partial';
-      clickable = true;
-      ariaLabel += ` — ${i18n.partial}`;
     } else {
       cls += ' duj-calendar__day--available';
       clickable = true;
@@ -757,6 +763,15 @@ async function renderPayment() {
       row.append(el('span', { textContent: k }), el('strong', { textContent: v }));
       div.append(row);
     });
+
+    if (payment?.qr_uri) {
+      const qrWrap = el('div', { className: 'duj-bank-transfer__qr' });
+      const qrImg  = el('img', { src: payment.qr_uri, alt: 'QR platba', width: 220, height: 220 });
+      const qrNote = el('p', { className: 'duj-bank-transfer__qr-note', textContent: 'Naskenujte kód svou bankovní aplikací (QR Platba)' });
+      qrWrap.append(qrImg, qrNote);
+      div.append(qrWrap);
+    }
+
     const note = el('p', { className: 'duj-bank-transfer__note' });
     note.textContent = 'Po přijetí platby vám zašleme potvrzení e-mailem.';
     div.append(note);

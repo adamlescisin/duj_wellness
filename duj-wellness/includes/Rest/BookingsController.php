@@ -182,6 +182,11 @@ final class BookingsController
                 $freshBooking = $this->bookingRepo?->findById($result->bookingId);
                 if ($freshBooking !== null) {
                     $this->notificationService->sendAdminNewBooking($freshBooking);
+                    // For Stripe card payments the webhook sends awaiting_confirmation once the card is authorized.
+                    // For bank_transfer / qr_checkout there is no webhook, so send it immediately.
+                    if ($paymentMethod !== 'stripe_card') {
+                        $this->notificationService->sendAwaitingConfirmation($freshBooking);
+                    }
                     if ($paymentMethod === 'bank_transfer' && isset($responseData['payment'])) {
                         $this->notificationService->sendBankTransferInstructions($freshBooking, $responseData['payment']);
                     }
@@ -290,13 +295,15 @@ final class BookingsController
         if ($booking !== null && ($iban !== '' || $number !== '')) {
             $ibanForQr = $iban !== '' ? $iban : '';
             if ($ibanForQr !== '') {
-                $spd = (new QrPaymentGenerator())->generate(
+                $qrGen = new QrPaymentGenerator();
+                $spd   = $qrGen->generate(
                     $ibanForQr,
                     $booking->amountMinor,
                     $reference,
                     'Wellness rezervace ' . $reference,
                 );
-                $qrData['spd'] = $spd;
+                $qrData['spd']    = $spd;
+                $qrData['qr_uri'] = $qrGen->toDataUri($spd);
             }
         }
 

@@ -45,26 +45,78 @@ final class PricingPage
 
             <!-- Tab A: Tiers -->
             <div class="duj-tab-panel" id="tab-tiers">
+                <p><?= esc_html__('Upravte hladiny níže a uložte tlačítkem.', 'duj-wellness') ?></p>
+                <form id="duj-tiers-form">
                 <table class="widefat fixed">
                     <thead><tr>
-                        <th><?= esc_html__('Hladina', 'duj-wellness') ?></th>
-                        <th><?= esc_html__('Popis', 'duj-wellness') ?></th>
-                        <th><?= esc_html__('Výchozí', 'duj-wellness') ?></th>
-                        <th><?= esc_html__('Vyžaduje kód', 'duj-wellness') ?></th>
-                        <th><?= esc_html__('Aktivní', 'duj-wellness') ?></th>
+                        <th style="width:120px"><?= esc_html__('Slug', 'duj-wellness') ?></th>
+                        <th><?= esc_html__('Název', 'duj-wellness') ?></th>
+                        <th style="width:90px"><?= esc_html__('Cutoff', 'duj-wellness') ?></th>
+                        <th style="width:50px"><?= esc_html__('Pořadí', 'duj-wellness') ?></th>
+                        <th style="width:70px"><?= esc_html__('Kód?', 'duj-wellness') ?></th>
+                        <th style="width:70px"><?= esc_html__('Ve formuláři', 'duj-wellness') ?></th>
+                        <th style="width:70px"><?= esc_html__('Aktivní', 'duj-wellness') ?></th>
+                        <th style="width:70px"><?= esc_html__('Akce', 'duj-wellness') ?></th>
                     </tr></thead>
                     <tbody>
                         <?php foreach ($tiers as $t): ?>
-                            <tr>
-                                <td><?= esc_html($t['label']) ?> <code><?= esc_html($t['slug']) ?></code></td>
-                                <td>—</td>
-                                <td><?= (int)$t['is_default'] ? '✓' : '' ?></td>
-                                <td><?= (int)$t['requires_code'] ? '✓' : '' ?></td>
-                                <td><?= (int)$t['is_active'] ? '✓' : '—' ?></td>
+                            <tr data-tier-id="<?= (int)$t['id'] ?>">
+                                <td><code><?= esc_html($t['slug']) ?></code></td>
+                                <td><input type="text" name="label" value="<?= esc_attr($t['label']) ?>" class="regular-text" required></td>
+                                <td>
+                                    <select name="cutoff_mode" style="width:100%">
+                                        <?php foreach (['inherit' => 'Inherit', 'lead_time_only' => 'Lead time', 'none' => 'None'] as $v => $l): ?>
+                                            <option value="<?= esc_attr($v) ?>" <?= (($t['cutoff_mode'] ?? 'inherit') === $v) ? 'selected' : '' ?>><?= esc_html($l) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                                <td><input type="number" name="sort_order" value="<?= (int)$t['sort_order'] ?>" min="0" style="width:50px"></td>
+                                <td style="text-align:center"><input type="checkbox" name="requires_code" <?= (int)$t['requires_code'] ? 'checked' : '' ?>></td>
+                                <td style="text-align:center"><input type="checkbox" name="show_in_form"  <?= (int)$t['show_in_form']  ? 'checked' : '' ?>></td>
+                                <td style="text-align:center"><input type="checkbox" name="is_active"     <?= (int)$t['is_active']     ? 'checked' : '' ?>></td>
+                                <td><button type="button" class="button button-small" data-delete-tier="<?= (int)$t['id'] ?>"><?= esc_html__('Smazat', 'duj-wellness') ?></button></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <p style="margin-top:.75rem"><button type="submit" class="button button-primary"><?= esc_html__('Uložit hladiny', 'duj-wellness') ?></button></p>
+                </form>
+
+                <h3 style="margin-top:2rem"><?= esc_html__('Přidat hladinu', 'duj-wellness') ?></h3>
+                <form id="duj-add-tier-form" style="max-width:540px">
+                    <table class="form-table">
+                        <tr>
+                            <th><label for="tier-slug"><?= esc_html__('Slug (unikátní, neměnný)', 'duj-wellness') ?></label></th>
+                            <td><input type="text" id="tier-slug" name="slug" required pattern="[a-z0-9_\-]+" class="regular-text" placeholder="napr_ubytovani"></td>
+                        </tr>
+                        <tr>
+                            <th><label for="tier-label"><?= esc_html__('Název', 'duj-wellness') ?></label></th>
+                            <td><input type="text" id="tier-label" name="label" required class="regular-text"></td>
+                        </tr>
+                        <tr>
+                            <th><label for="tier-cutoff"><?= esc_html__('Cutoff mode', 'duj-wellness') ?></label></th>
+                            <td>
+                                <select id="tier-cutoff" name="cutoff_mode">
+                                    <option value="inherit">Inherit</option>
+                                    <option value="lead_time_only">Lead time only</option>
+                                    <option value="none">None</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?= esc_html__('Možnosti', 'duj-wellness') ?></th>
+                            <td>
+                                <label><input type="checkbox" name="requires_code"> <?= esc_html__('Vyžaduje přístupový kód', 'duj-wellness') ?></label><br>
+                                <label><input type="checkbox" name="show_in_form" checked> <?= esc_html__('Zobrazit ve formuláři', 'duj-wellness') ?></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><label for="tier-order"><?= esc_html__('Pořadí', 'duj-wellness') ?></label></th>
+                            <td><input type="number" id="tier-order" name="sort_order" value="10" min="0" style="width:70px"></td>
+                        </tr>
+                    </table>
+                    <button type="submit" class="button button-primary"><?= esc_html__('Přidat hladinu', 'duj-wellness') ?></button>
+                </form>
             </div>
 
             <!-- Tab B: Price matrix -->

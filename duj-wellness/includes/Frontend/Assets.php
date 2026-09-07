@@ -121,6 +121,8 @@ final class Assets
             'unavailable'          => __('Nedostupné', 'duj-wellness'),
             'priceFrom'            => __('od', 'duj-wellness'),
             'czk'                  => __('Kč', 'duj-wellness'),
+            'payStripeCard'        => __('Platba kartou', 'duj-wellness'),
+            'payBankTransfer'      => __('Bankovní převod / QR platba', 'duj-wellness'),
         ];
     }
 }

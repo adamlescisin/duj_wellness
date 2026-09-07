@@ -17,6 +17,8 @@
   <strong>Splatnost do:</strong> {{deadline}}
 </div>
 
+{{qr_block}}
+
 <p>Vaši platbu sledujeme a rezervaci potvrdíme po jejím přijetí. Po potvrzení obdržíte e-mail s potvrzením.</p>
 <hr>
 <p style="font-size:13px;color:#7a6559">Pokud jste tuto rezervaci neprovedli vy, ignorujte prosím tento e-mail.</p>

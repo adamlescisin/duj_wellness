@@ -55,13 +55,32 @@ final class QrPaymentGenerator
     }
 
     /**
-     * Vrátí data-URI s QR kódem ve formátu SVG (bez externích závislostí).
-     * Klientský kód může použít spdString a vykreslit QR pomocí JS knihovny.
+     * Vrátí data-URI SVG QR kódu vhodnou pro vložení do e-mailu (<img src="…">).
+     * Používá endroid/qr-code přes BaconQrCode backend (vendorovaný bez GD/Imagick).
      */
     public function toDataUri(string $spdString): string
     {
-        // Jednoduchý fallback — klient vykreslí QR z spdString přes JS.
-        // Tato metoda vrací prázdný string; QR vykresluje frontend.
-        return '';
+        if ($spdString === '') {
+            return '';
+        }
+
+        try {
+            $qrCode = new \Endroid\QrCode\QrCode(
+                data:                 $spdString,
+                errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::Medium,
+                size:                 250,
+                margin:               10,
+            );
+
+            $result = (new \Endroid\QrCode\Writer\SvgWriter())->write($qrCode, options: [
+                \Endroid\QrCode\Writer\SvgWriter::WRITER_OPTION_EXCLUDE_XML_DECLARATION => true,
+                \Endroid\QrCode\Writer\SvgWriter::WRITER_OPTION_COMPACT               => true,
+            ]);
+
+            $svg = $result->getString();
+            return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        } catch (\Throwable) {
+            return '';
+        }
     }
 }

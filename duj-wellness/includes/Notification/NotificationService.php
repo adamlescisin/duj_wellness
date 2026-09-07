@@ -33,9 +33,9 @@ final class NotificationService
         $confirmToken = $this->tokenService->create($booking->id, 'confirm');
         $cancelToken  = $this->tokenService->create($booking->id, 'cancel');
 
-        $baseUrl    = function_exists('home_url') ? home_url('/') : 'https://example.com/';
-        $confirmUrl = $this->buildActionUrl($baseUrl, 'confirm', $confirmToken);
-        $cancelUrl  = $this->buildActionUrl($baseUrl, 'cancel', $cancelToken);
+        $actionBase = $this->restActionUrl();
+        $confirmUrl = $this->buildActionUrl($actionBase, 'confirm', $confirmToken);
+        $cancelUrl  = $this->buildActionUrl($actionBase, 'cancel', $cancelToken);
 
         $siteName = function_exists('get_option') ? (string) get_option('blogname', 'Domeček u Josefa') : 'Domeček u Josefa';
         $siteUrl  = function_exists('home_url') ? home_url('/') : 'https://example.com/';
@@ -136,9 +136,9 @@ final class NotificationService
      */
     public function sendAdminNewBooking(BookingRow $booking): void
     {
-        $baseUrl    = function_exists('home_url') ? home_url('/') : 'https://example.com/';
-        $confirmUrl = $this->buildActionUrl($baseUrl, 'confirm', $this->tokenService->create($booking->id, 'confirm'));
-        $rejectUrl  = $this->buildActionUrl($baseUrl, 'reject', $this->tokenService->create($booking->id, 'reject'));
+        $actionBase = $this->restActionUrl();
+        $confirmUrl = $this->buildActionUrl($actionBase, 'confirm', $this->tokenService->create($booking->id, 'confirm'));
+        $rejectUrl  = $this->buildActionUrl($actionBase, 'reject', $this->tokenService->create($booking->id, 'reject'));
 
         $this->sendTelegramNewBooking($booking, $confirmUrl, $rejectUrl);
         $this->sendAdminEmailNewBooking($booking, $confirmUrl, $rejectUrl);
@@ -208,7 +208,15 @@ final class NotificationService
     {
         $siteName = function_exists('get_option') ? (string) get_option('blogname', 'Domeček u Josefa') : 'Domeček u Josefa';
 
-        $amount = number_format($booking->amountMinor / 100, 2, ',', '\u{a0}');
+        $amount = number_format($booking->amountMinor / 100, 2, ',', "\u{a0}");
+        $iban   = $payment['iban'] ?? '';
+        $vs     = $payment['variable_symbol'] ?? preg_replace('/[^0-9]/', '', $booking->reference);
+
+        $qrGen     = new \Duj\Wellness\Payment\QrPaymentGenerator();
+        $spdString = $iban !== ''
+            ? $qrGen->generate($iban, $booking->amountMinor, $vs, 'Wellness ' . $booking->reference)
+            : '';
+        $qrDataUri = $qrGen->toDataUri($spdString);
 
         $data = [
             'site_name'       => $siteName,
@@ -219,9 +227,9 @@ final class NotificationService
             'slot_to'         => $booking->slotTo,
             'resource'        => $booking->comboKey,
             'amount'          => $amount,
-            'iban'            => $payment['iban'] ?? '',
+            'iban'            => $iban,
             'account_number'  => $payment['account_number'] ?? '',
-            'variable_symbol' => $payment['variable_symbol'] ?? preg_replace('/[^0-9]/', '', $booking->reference),
+            'variable_symbol' => $vs,
             'deadline'        => isset($payment['hold_expires_at'])
                 ? (new \DateTimeImmutable($payment['hold_expires_at'], new \DateTimeZone('Europe/Prague')))->format('j. n. Y H:i')
                 : '',
@@ -231,7 +239,8 @@ final class NotificationService
             'email_subject_bank_transfer',
             'Platební instrukce k rezervaci {{reference}}'
         );
-        $bodyTpl  = $this->getTemplate('bank_transfer_instructions');
+        $bodyTpl = $this->getTemplate('bank_transfer_instructions');
+        $bodyTpl = $this->injectQrBlock($bodyTpl, $qrDataUri);
         $subject  = $this->renderer->renderSubject($subjectTpl, $data);
         $rendered = $this->renderer->render($bodyTpl, $data);
 
@@ -329,6 +338,34 @@ final class NotificationService
         ob_start();
         include $file;
         return ob_get_clean() ?: '';
+    }
+
+    /**
+     * Nahradí {{qr_block}} v šabloně za HTML blok s QR kódem (nebo prázdný řetězec).
+     * Injekce před voláním rendereru, aby esc_html nepoškodilo HTML obrázku.
+     */
+    private function injectQrBlock(string $template, string $qrDataUri): string
+    {
+        if ($qrDataUri === '') {
+            return str_replace('{{qr_block}}', '', $template);
+        }
+
+        $block = '<div style="text-align:center;margin:1.5rem 0">'
+            . '<p style="font-weight:600;margin-bottom:0.5rem">QR kód pro platbu:</p>'
+            . '<img src="' . $qrDataUri . '" alt="QR platba" width="220" height="220"'
+            . ' style="display:block;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px">'
+            . '<p style="font-size:12px;color:#6b7280;margin-top:0.5rem">'
+            . 'Naskenujte kód svou bankovní aplikací (QR Platba)</p>'
+            . '</div>';
+
+        return str_replace('{{qr_block}}', $block, $template);
+    }
+
+    private function restActionUrl(): string
+    {
+        return function_exists('rest_url')
+            ? rest_url('duj/v1/action')
+            : 'https://example.com/wp-json/duj/v1/action';
     }
 
     private function buildActionUrl(string $base, string $action, string $token): string

@@ -19,8 +19,8 @@ final class AccessCodeController
 
     public function register(): void
     {
-        register_rest_route(self::NAMESPACE, '/access-code/validate', [
-            'methods'             => 'POST',
+        register_rest_route(self::NAMESPACE, '/access-codes/validate', [
+            'methods'             => 'GET',
             'callback'            => [$this, 'validate'],
             'permission_callback' => '__return_true',
             'args'                => [
@@ -51,7 +51,16 @@ final class AccessCodeController
         $code = $request->get_param('code');
         $date = $request->get_param('date') ?? Dates::today();
 
-        $resolution = $this->accessCodeService->validate($code, $date);
+        try {
+            $resolution = $this->accessCodeService->validate($code, $date);
+        } catch (\Throwable $e) {
+            error_log('[duj-wellness] AccessCodeController error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            return new \WP_REST_Response([
+                'valid'   => false,
+                'message' => __('Kód neplatí.', 'duj-wellness'),
+                '_debug'  => $e->getMessage() . ' in ' . basename($e->getFile()) . ':' . $e->getLine(),
+            ], 200);
+        }
 
         if ($resolution->invalidCode) {
             return new \WP_REST_Response([

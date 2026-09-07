@@ -12,7 +12,6 @@
 <p>Pokud si přejete rezervaci zrušit, klikněte na tlačítko níže:</p>
 
 <div class="btn-wrap">
-  <a href="{{confirm_url}}" class="btn btn-primary">✅ Potvrdit rezervaci</a>
   <a href="{{cancel_url}}" class="btn btn-danger">❌ Zrušit rezervaci</a>
 </div>
 

@@ -347,8 +347,20 @@
   background: color-mix(in srgb, var(--duj-accent) 8%, var(--duj-surface));
 }
 
+/* Available slot cards — subtle green tint, matching service cards */
+:where(.duj-slot-card:not(.duj-slot-card--unavailable)) {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.duj-wellness .duj-slot-card:not(.duj-slot-card--unavailable) {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
 :where(.duj-slot-card--unavailable) {
-  opacity: .5;
+  background: #fff5f5;
+  border-color: #fecaca;
+  opacity: .6;
   cursor: default;
   pointer-events: none;
 }
@@ -382,9 +394,19 @@
   cursor: pointer;
   background: var(--duj-surface);
   text-align: left;
-  transition: border-color .12s;
+  transition: border-color .12s, background .12s;
   font-family: inherit;
   color: var(--duj-text);
+}
+
+/* Available service cards get a very subtle green tint */
+:where(.duj-service-card:not(.duj-service-card--unavailable)) {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.duj-wellness .duj-service-card:not(.duj-service-card--unavailable) {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
 }
 
 :where(.duj-service-card:hover) {
@@ -549,6 +571,40 @@
 }
 
 /* ─── Buttons ─── */
+/* High-specificity rules override theme resets that use > :where() specificity */
+.duj-wellness .duj-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--duj-accent);
+  color: var(--duj-accent-contrast);
+  border: 2px solid transparent;
+  border-radius: var(--duj-radius);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  min-width: 44px;
+  min-height: 44px;
+}
+.duj-wellness .duj-btn--secondary {
+  background: transparent;
+  color: var(--duj-accent);
+  border-color: var(--duj-accent);
+}
+.duj-wellness .duj-btn--full {
+  width: 100%;
+}
+.duj-wellness .duj-btn:hover { filter: brightness(.9); }
+.duj-wellness .duj-btn--secondary:hover {
+  background: color-mix(in srgb, var(--duj-accent) 8%, transparent);
+  filter: none;
+}
+.duj-wellness .duj-btn:disabled { opacity: .55; cursor: not-allowed; }
+
 :where(.duj-btn) {
   display: inline-flex;
   align-items: center;
@@ -752,4 +808,39 @@
     gap: 1.5rem;
     align-items: start;
   }
+}
+
+/* ─── Bank transfer QR block ─── */
+:where(.duj-bank-transfer) {
+  margin-top: 1.25rem;
+}
+
+:where(.duj-bank-transfer__title) {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+:where(.duj-bank-transfer__qr) {
+  text-align: center;
+  margin: 1.5rem 0 1rem;
+}
+
+:where(.duj-bank-transfer__qr img) {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid var(--duj-border);
+  border-radius: var(--duj-radius);
+}
+
+:where(.duj-bank-transfer__qr-note) {
+  font-size: 0.8rem;
+  color: var(--duj-muted);
+  margin-top: 0.5rem;
+}
+
+:where(.duj-bank-transfer__note) {
+  font-size: 0.875rem;
+  color: var(--duj-muted);
+  margin-top: 1rem;
 }
