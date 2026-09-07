@@ -354,8 +354,30 @@ final class BookingService implements BookingServiceInterface
 
     private function generateReference(string $date): string
     {
-        $ymd  = str_replace('-', '', $date);
-        $rand = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
-        return "W{$ymd}{$rand}";
+        global $wpdb;
+
+        $yy  = (new \DateTimeImmutable($date))->format('y');
+        $key = 'duj_ref_seq_20' . $yy;
+
+        // Atomic increment via INSERT … ON DUPLICATE KEY UPDATE + LAST_INSERT_ID trick.
+        $wpdb->query(
+            $wpdb->prepare(
+                "INSERT INTO `{$wpdb->options}` (option_name, option_value, autoload)
+                 VALUES (%s, 1, 'no')
+                 ON DUPLICATE KEY UPDATE option_value = LAST_INSERT_ID(option_value + 1)",
+                $key
+            )
+        );
+
+        $seq = (int) $wpdb->get_var('SELECT LAST_INSERT_ID()');
+        if ($seq === 0) {
+            // Row existed before our INSERT; read current value as fallback.
+            $seq = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT option_value FROM `{$wpdb->options}` WHERE option_name = %s",
+                $key
+            ));
+        }
+
+        return sprintf('W%s%04d', $yy, max(1, $seq));
     }
 }
