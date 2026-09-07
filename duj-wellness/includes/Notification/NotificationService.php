@@ -44,7 +44,7 @@ final class NotificationService
             'site_name'    => $siteName,
             'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
-            'booking_date' => $booking->bookingDate,
+            'booking_date' => $this->formatDate($booking->bookingDate),
             'slot_from'    => $booking->slotFrom,
             'slot_to'      => $booking->slotTo,
             'resource'     => $booking->comboKey,
@@ -79,7 +79,7 @@ final class NotificationService
             'site_name'    => $siteName,
             'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
-            'booking_date' => $booking->bookingDate,
+            'booking_date' => $this->formatDate($booking->bookingDate),
             'slot_from'    => $booking->slotFrom,
             'slot_to'      => $booking->slotTo,
             'resource'     => $booking->comboKey,
@@ -110,7 +110,7 @@ final class NotificationService
             'site_name'    => $siteName,
             'logo_url'     => (string) $this->settings->get('logo_url', ''),
             'reference'    => $booking->reference,
-            'booking_date' => $booking->bookingDate,
+            'booking_date' => $this->formatDate($booking->bookingDate),
             'slot_from'    => $booking->slotFrom,
             'slot_to'      => $booking->slotTo,
             'resource'     => $booking->comboKey,
@@ -359,6 +359,15 @@ final class NotificationService
             . '</div>';
 
         return str_replace('{{qr_block}}', $block, $template);
+    }
+
+    private function formatDate(string $isoDate): string
+    {
+        try {
+            return (new \DateTimeImmutable($isoDate))->format('d.m.Y');
+        } catch (\Exception) {
+            return $isoDate;
+        }
     }
 
     private function restActionUrl(): string
