@@ -360,23 +360,19 @@ final class BookingService implements BookingServiceInterface
         $key = 'duj_ref_seq_20' . $yy;
 
         // Atomic increment via INSERT … ON DUPLICATE KEY UPDATE + LAST_INSERT_ID trick.
+        // LAST_INSERT_ID(expr) sets the LAST_INSERT_ID session variable to expr — used in
+        // both the INSERT and UPDATE arms so SELECT LAST_INSERT_ID() always returns our counter,
+        // never the wp_options option_id auto-increment value.
         $wpdb->query(
             $wpdb->prepare(
                 "INSERT INTO `{$wpdb->options}` (option_name, option_value, autoload)
-                 VALUES (%s, 1, 'no')
+                 VALUES (%s, LAST_INSERT_ID(1), 'no')
                  ON DUPLICATE KEY UPDATE option_value = LAST_INSERT_ID(option_value + 1)",
                 $key
             )
         );
 
         $seq = (int) $wpdb->get_var('SELECT LAST_INSERT_ID()');
-        if ($seq === 0) {
-            // Row existed before our INSERT; read current value as fallback.
-            $seq = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT option_value FROM `{$wpdb->options}` WHERE option_name = %s",
-                $key
-            ));
-        }
 
         return sprintf('W%s%04d', $yy, max(1, $seq));
     }
