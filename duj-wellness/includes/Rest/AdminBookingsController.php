@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Duj\Wellness\Rest;
 
 use Duj\Wellness\Domain\BookingService;
+use Duj\Wellness\Domain\BookingStatus;
 use Duj\Wellness\Domain\ComboKey;
 use Duj\Wellness\Notification\NotificationService;
 use Duj\Wellness\Repository\BookingRepository;
@@ -179,14 +180,22 @@ final class AdminBookingsController
             return new \WP_Error('invalid_action', 'Neplatná akce.', ['status' => 400]);
         }
 
-        if ($action === 'mark_paid') {
-            $this->bookingRepo->update($booking->id, ['payment_status' => 'succeeded']);
-            return new \WP_REST_Response(['ok' => true]);
-        }
-
         try {
-            $newStatus = $statusMap[$action];
-            $this->bookingService->transition($booking, $newStatus);
+            if ($action === 'mark_paid') {
+                $this->bookingRepo->update($booking->id, ['payment_status' => 'succeeded']);
+                // If still pending_payment, step to awaiting_confirmation so admin can confirm.
+                if ($booking->status === BookingStatus::PENDING_PAYMENT->value) {
+                    $this->bookingService->transition($booking->id, BookingStatus::AWAITING_CONFIRMATION);
+                    $fresh = $this->bookingRepo->findById($booking->id);
+                    if ($fresh) {
+                        $this->notificationService->sendAwaitingConfirmation($fresh);
+                    }
+                }
+                return new \WP_REST_Response(['ok' => true]);
+            }
+
+            $newStatus = BookingStatus::from($statusMap[$action]);
+            $this->bookingService->transition($booking->id, $newStatus);
             $fresh = $this->bookingRepo->findById($booking->id);
             if ($fresh) {
                 match ($action) {
