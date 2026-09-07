@@ -22,11 +22,11 @@ final class EmailsPage
 
     private const PLACEHOLDERS = [
         '{{reference}}', '{{customer_name}}', '{{customer_email}}', '{{customer_phone}}',
-        '{{date}}', '{{weekday}}', '{{time_from}}', '{{time_to}}', '{{service_label}}',
-        '{{guests}}', '{{price}}', '{{tier_label}}', '{{access_code}}',
-        '{{payment_method_label}}', '{{status_label}}', '{{customer_note}}', '{{admin_note}}',
-        '{{confirm_url}}', '{{reject_url}}', '{{cancel_url}}', '{{detail_url}}', '{{admin_url}}',
-        '{{site_name}}', '{{site_url}}', '{{contact_email}}', '{{contact_phone}}', '{{address}}',
+        '{{booking_date}}', '{{slot_from}}', '{{slot_to}}', '{{combo_key}}',
+        '{{amount}}', '{{currency}}', '{{payment_method}}',
+        '{{confirm_url}}', '{{cancel_url}}', '{{reject_url}}',
+        '{{site_name}}', '{{contact_email}}', '{{address}}',
+        '{{valid_to}}', '{{code}}', '{{tier_slug}}',
     ];
 
     public static function render(): void
