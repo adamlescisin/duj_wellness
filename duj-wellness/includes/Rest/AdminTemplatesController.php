@@ -116,17 +116,19 @@ final class AdminTemplatesController
         $subject = $option['subject'] ?? $defaults['subject'] ?? "Test: {$slug}";
         $tmplBody = $option['body']   ?? $defaults['body']    ?? "(prázdná šablona)";
 
-        // Replace placeholders with sample values for test email
-        $placeholders = TemplateRenderer::getSamplePlaceholders();
-        $subject  = str_replace(array_keys($placeholders), array_values($placeholders), $subject);
-        $tmplBody = str_replace(array_keys($placeholders), array_values($placeholders), $tmplBody);
+        $sampleData = [];
+        foreach (TemplateRenderer::getSamplePlaceholders() as $placeholder => $value) {
+            $sampleData[trim($placeholder, '{}')] = $value;
+        }
+        $subject = str_replace(array_keys(TemplateRenderer::getSamplePlaceholders()), array_values(TemplateRenderer::getSamplePlaceholders()), $subject);
+        $rendered = (new TemplateRenderer())->render($tmplBody, $sampleData);
 
         $headers = [
             'Content-Type: text/html; charset=UTF-8',
             "From: {$from}",
         ];
 
-        $sent = wp_mail($recipient, "[TEST] {$subject}", nl2br(esc_html($tmplBody)), $headers);
+        $sent = wp_mail($recipient, "[TEST] {$subject}", $rendered['html'], $headers);
 
         if (!$sent) {
             return new \WP_Error('mail_failed', 'E-mail se nepodařilo odeslat.', ['status' => 500]);
