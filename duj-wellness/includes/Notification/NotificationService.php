@@ -52,7 +52,7 @@ final class NotificationService
             'cancel_url'   => $cancelUrl,
         ];
 
-        $subjectTpl = (string) $this->settings->get('email_subject_awaiting', 'Vaše rezervace {{reference}} čeká na potvrzení');
+        $subjectTpl = (string) $this->settings->get('email_subject_awaiting_confirmation', 'Vaše rezervace {{reference}} čeká na potvrzení');
         $bodyTpl    = $this->getTemplate('awaiting_confirmation');
         $subject    = $this->renderer->renderSubject($subjectTpl, $data);
         $rendered   = $this->renderer->render($bodyTpl, $data);
@@ -181,10 +181,10 @@ final class NotificationService
         ];
 
         $subjectTpl = (string) $this->settings->get(
-            'email_subject_admin_new_booking',
+            'email_subject_admin_booking_new',
             '[Wellness] Nová rezervace {{reference}}'
         );
-        $bodyTpl  = $this->getTemplate('admin_new_booking');
+        $bodyTpl  = $this->getTemplate('admin_booking_new');
         $subject  = $this->renderer->renderSubject($subjectTpl, $data);
         $rendered = $this->renderer->render($bodyTpl, $data);
 
