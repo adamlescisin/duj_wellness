@@ -67,8 +67,6 @@ const state = {
   customerName: '',
   customerEmail: '',
   customerPhone: '',
-  guests: 1,
-  note: '',
   consent: false,
 
   // payment
@@ -536,8 +534,6 @@ function renderDetails() {
     { id: 'duj-name',  label: 'Jméno a příjmení *', type: 'text',  key: 'customerName',  required: true, autocomplete: 'name' },
     { id: 'duj-email', label: 'E-mail *',            type: 'email', key: 'customerEmail', required: true, autocomplete: 'email' },
     { id: 'duj-phone', label: 'Telefon *',           type: 'tel',   key: 'customerPhone', required: true, autocomplete: 'tel', inputmode: 'tel' },
-    { id: 'duj-guests',label: 'Počet osob *',        type: 'number',key: 'guests',        required: true, min: 1, max: 10 },
-    { id: 'duj-note',  label: 'Poznámka',            type: 'textarea', key: 'note', required: false },
   ];
 
   const fieldEls = {};
@@ -712,8 +708,6 @@ async function renderPayment() {
           customer_name:  state.customerName,
           customer_email: state.customerEmail,
           customer_phone: state.customerPhone,
-          guests:         state.guests,
-          customer_note:  state.note,
           payment_method: selectedMethod,
           code:           state.accessCode || undefined,
           consent_at:     new Date().toISOString(),
