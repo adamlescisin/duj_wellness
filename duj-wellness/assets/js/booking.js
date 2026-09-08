@@ -20,6 +20,12 @@ function formatPrice(halers) {
   return czk.toLocaleString('cs-CZ') + ' ' + (i18n.czk ?? 'Kč');
 }
 
+function formatDate(iso) {
+  if (!iso) return iso;
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
 function isoDate(y, m, d) {
   return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
@@ -401,7 +407,7 @@ async function renderMonth(calWrap, year, month) {
 /* ─── STEP 1: Slots ─── */
 async function renderSlots() {
   app.append(buildPricingHeader(), buildStepBar(1));
-  app.append(el('div', { className: 'duj-notice duj-notice--info', textContent: `${state.selectedDate}` }));
+  app.append(el('div', { className: 'duj-notice duj-notice--info', textContent: formatDate(state.selectedDate) }));
 
   const loading = el('div', { className: 'duj-wellness__skeleton', 'aria-label': i18n.loading });
   app.append(loading);
@@ -630,7 +636,7 @@ async function renderPayment() {
   const slot = state.selectedSlot;
   const recap = el('div', { className: 'duj-recap' });
   const recapRows = [
-    ['Datum', state.selectedDate],
+    ['Datum', formatDate(state.selectedDate)],
     ['Čas',   slot ? `${slot.from.slice(0,5)}–${slot.to.slice(0,5)}` : ''],
     ['Služba', comboLabel(state.selectedCombo)],
     ['Zákazník', state.customerName],
