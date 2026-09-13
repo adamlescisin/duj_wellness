@@ -10,6 +10,7 @@ const REST = cfg.restUrl ?? '/wp-json/duj/v1/';
 const NONCE = cfg.nonce ?? '';
 const i18n = cfg.i18n ?? {};
 const STRIPE_KEY = cfg.stripeKey ?? '';
+const formOptions = cfg.formOptions ?? { showGuestCodeBox: true, showGuestsField: false, showNoteField: false };
 
 /* ─── Czech calendar helpers ─── */
 const MONTHS_CS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
@@ -73,6 +74,8 @@ const state = {
   customerName: '',
   customerEmail: '',
   customerPhone: '',
+  guests: 2,
+  note: '',
   consent: false,
 
   // payment
@@ -190,7 +193,9 @@ function buildPricingHeader() {
   tiers.append(pubLine, guestLine);
   wrap.append(tiers);
 
-  // Access code toggle
+  // Access code toggle — only rendered when enabled in admin settings
+  if (!formOptions.showGuestCodeBox) return wrap;
+
   const codeWrap = el('div', { style: 'flex-basis:100%' });
   const codeToggle = el('button', { className: 'duj-code-toggle', type: 'button', textContent: i18n.guestCode });
 
@@ -540,6 +545,8 @@ function renderDetails() {
     { id: 'duj-name',  label: 'Jméno a příjmení *', type: 'text',  key: 'customerName',  required: true, autocomplete: 'name' },
     { id: 'duj-email', label: 'E-mail *',            type: 'email', key: 'customerEmail', required: true, autocomplete: 'email' },
     { id: 'duj-phone', label: 'Telefon *',           type: 'tel',   key: 'customerPhone', required: true, autocomplete: 'tel', inputmode: 'tel' },
+    ...(formOptions.showGuestsField ? [{ id: 'duj-guests', label: i18n.persons + ' *', type: 'number', key: 'guests', required: true, min: 1, max: 10 }] : []),
+    ...(formOptions.showNoteField   ? [{ id: 'duj-note',   label: i18n.note,           type: 'textarea', key: 'note', required: false }] : []),
   ];
 
   const fieldEls = {};
@@ -714,6 +721,8 @@ async function renderPayment() {
           customer_name:  state.customerName,
           customer_email: state.customerEmail,
           customer_phone: state.customerPhone,
+          ...(formOptions.showGuestsField ? { guests: state.guests } : {}),
+          ...(formOptions.showNoteField   ? { customer_note: state.note } : {}),
           payment_method: selectedMethod,
           code:           state.accessCode || undefined,
           consent_at:     new Date().toISOString(),

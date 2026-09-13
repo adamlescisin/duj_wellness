@@ -79,6 +79,11 @@ final class Assets
             'stripeKey'      => (string) $publishableKey,
             'homeUrl'        => home_url('/'),
             'i18n'           => $this->getI18n(),
+            'formOptions'    => [
+                'showGuestCodeBox' => $this->settings->showGuestCodeBox(),
+                'showGuestsField'  => $this->settings->showGuestsField(),
+                'showNoteField'    => $this->settings->showNoteField(),
+            ],
         ]);
     }
 

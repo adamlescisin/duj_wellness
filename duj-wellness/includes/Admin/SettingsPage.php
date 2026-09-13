@@ -158,6 +158,23 @@ final class SettingsPage
                     </div>
                 </div>
 
+                <!-- Formulář rezervace -->
+                <div class="duj-settings-section">
+                    <h3><?= esc_html__('Formulář rezervace', 'duj-wellness') ?></h3>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Box pro ubytované', 'duj-wellness') ?></label>
+                        <div><label><input type="checkbox" name="show_guest_code_box" value="1" <?= checked($s->showGuestCodeBox(), true, false) ?>> <?= esc_html__('Zobrazit možnost zadat kód ubytovaného hosta', 'duj-wellness') ?></label></div>
+                    </div>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Pole počet osob', 'duj-wellness') ?></label>
+                        <div><label><input type="checkbox" name="show_guests_field" value="1" <?= checked($s->showGuestsField(), true, false) ?>> <?= esc_html__('Zobrazit pole „Počet osob"', 'duj-wellness') ?></label></div>
+                    </div>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Pole poznámka', 'duj-wellness') ?></label>
+                        <div><label><input type="checkbox" name="show_note_field" value="1" <?= checked($s->showNoteField(), true, false) ?>> <?= esc_html__('Zobrazit pole „Poznámka"', 'duj-wellness') ?></label></div>
+                    </div>
+                </div>
+
                 <!-- Kontakt / texty -->
                 <div class="duj-settings-section">
                     <h3><?= esc_html__('Kontakt a texty', 'duj-wellness') ?></h3>

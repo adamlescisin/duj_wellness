@@ -56,6 +56,9 @@ final class AdminSettingsController
             'gdpr_retention_months'          => $s->gdprRetentionMonths(),
             'debug_mode'                     => $s->debugMode(),
             'logo_url'                       => $s->logoUrl(),
+            'show_guest_code_box'            => $s->showGuestCodeBox(),
+            'show_guests_field'              => $s->showGuestsField(),
+            'show_note_field'                => $s->showNoteField(),
             'admin_notify_emails'            => $s->get('admin_notify_emails', ''),
         ]);
     }
@@ -91,6 +94,9 @@ final class AdminSettingsController
             'gdpr_retention_months'          => 'intval',
             'debug_mode'                     => 'boolval',
             'logo_url'                       => 'esc_url_raw',
+            'show_guest_code_box'            => 'boolval',
+            'show_guests_field'              => 'boolval',
+            'show_note_field'                => 'boolval',
         ];
 
         $enum = [

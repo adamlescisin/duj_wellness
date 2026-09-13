@@ -385,4 +385,21 @@ final class Settings implements SettingsInterface
     {
         return (bool) $this->get('debug_mode', false);
     }
+
+    // ── Volitelné prvky formuláře ─────────────────────────────────────────────
+
+    public function showGuestCodeBox(): bool
+    {
+        return (bool) $this->get('show_guest_code_box', true);
+    }
+
+    public function showGuestsField(): bool
+    {
+        return (bool) $this->get('show_guests_field', false);
+    }
+
+    public function showNoteField(): bool
+    {
+        return (bool) $this->get('show_note_field', false);
+    }
 }
