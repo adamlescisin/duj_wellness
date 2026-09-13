@@ -407,4 +407,31 @@ final class Settings implements SettingsInterface
     {
         return (bool) $this->get('show_booking_heading', true);
     }
+
+    // ── Popisky kroků rezervačního formuláře ──────────────────────────────────
+
+    public function stepLabelSelectDay(): string
+    {
+        return (string) $this->get('step_label_select_day', '');
+    }
+
+    public function stepLabelSelectSlot(): string
+    {
+        return (string) $this->get('step_label_select_slot', '');
+    }
+
+    public function stepLabelSelectService(): string
+    {
+        return (string) $this->get('step_label_select_service', '');
+    }
+
+    public function stepLabelFillDetails(): string
+    {
+        return (string) $this->get('step_label_fill_details', '');
+    }
+
+    public function stepLabelPayment(): string
+    {
+        return (string) $this->get('step_label_payment', '');
+    }
 }

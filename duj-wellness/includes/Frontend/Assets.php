@@ -92,13 +92,15 @@ final class Assets
 
     private function getI18n(): array
     {
+        $s = $this->settings;
+
         return [
             'loading'              => __('Načítání…', 'duj-wellness'),
-            'selectDay'            => __('Vyberte den v kalendáři', 'duj-wellness'),
-            'selectSlot'           => __('Vyberte termín', 'duj-wellness'),
-            'selectService'        => __('Vyberte službu', 'duj-wellness'),
-            'fillDetails'          => __('Vyplňte údaje', 'duj-wellness'),
-            'payment'              => __('Platba', 'duj-wellness'),
+            'selectDay'            => $s->stepLabelSelectDay()     ?: __('Vyberte den v kalendáři', 'duj-wellness'),
+            'selectSlot'           => $s->stepLabelSelectSlot()    ?: __('Vyberte termín', 'duj-wellness'),
+            'selectService'        => $s->stepLabelSelectService() ?: __('Vyberte službu', 'duj-wellness'),
+            'fillDetails'          => $s->stepLabelFillDetails()   ?: __('Vyplňte údaje', 'duj-wellness'),
+            'payment'              => $s->stepLabelPayment()       ?: __('Platba', 'duj-wellness'),
             'bookingConfirmed'     => __('Rezervace přijata', 'duj-wellness'),
             'noSlotsAvailable'     => __('V tento den není žádný volný termín.', 'duj-wellness'),
             'slotTaken'            => __('Tento termín právě někdo zarezervoval, vyberte prosím jiný.', 'duj-wellness'),

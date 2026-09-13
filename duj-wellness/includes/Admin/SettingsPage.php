@@ -179,6 +179,31 @@ final class SettingsPage
                     </div>
                 </div>
 
+                <!-- Popisky kroků -->
+                <div class="duj-settings-section">
+                    <h3><?= esc_html__('Popisky kroků formuláře', 'duj-wellness') ?></h3>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Krok 1 – výběr dne', 'duj-wellness') ?></label>
+                        <div><input type="text" name="step_label_select_day" value="<?= esc_attr($s->stepLabelSelectDay()) ?>" placeholder="<?= esc_attr__('Vyberte den v kalendáři', 'duj-wellness') ?>"></div>
+                    </div>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Krok 2 – výběr termínu', 'duj-wellness') ?></label>
+                        <div><input type="text" name="step_label_select_slot" value="<?= esc_attr($s->stepLabelSelectSlot()) ?>" placeholder="<?= esc_attr__('Vyberte termín', 'duj-wellness') ?>"></div>
+                    </div>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Krok 3 – výběr služby', 'duj-wellness') ?></label>
+                        <div><input type="text" name="step_label_select_service" value="<?= esc_attr($s->stepLabelSelectService()) ?>" placeholder="<?= esc_attr__('Vyberte službu', 'duj-wellness') ?>"></div>
+                    </div>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Krok 4 – vyplnění údajů', 'duj-wellness') ?></label>
+                        <div><input type="text" name="step_label_fill_details" value="<?= esc_attr($s->stepLabelFillDetails()) ?>" placeholder="<?= esc_attr__('Vyplňte údaje', 'duj-wellness') ?>"></div>
+                    </div>
+                    <div class="duj-settings-row">
+                        <label><?= esc_html__('Krok 5 – platba', 'duj-wellness') ?></label>
+                        <div><input type="text" name="step_label_payment" value="<?= esc_attr($s->stepLabelPayment()) ?>" placeholder="<?= esc_attr__('Platba', 'duj-wellness') ?>"></div>
+                    </div>
+                </div>
+
                 <!-- Kontakt / texty -->
                 <div class="duj-settings-section">
                     <h3><?= esc_html__('Kontakt a texty', 'duj-wellness') ?></h3>
