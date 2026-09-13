@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Duj\Wellness\Frontend;
 
+use Duj\Wellness\Support\SettingsInterface;
+
 /**
  * Shortcode [duj_wellness_booking] a [duj_wellness_availability].
  */
@@ -11,6 +13,7 @@ final class Shortcode
 {
     public function __construct(
         private readonly Assets $assets,
+        private readonly SettingsInterface $settings,
     ) {}
 
     public function register(): void
@@ -42,6 +45,9 @@ final class Shortcode
         $months  = max(1, min(12, (int) $atts['months']));
         $service = in_array($atts['service'], ['all', 'sud', 'sauna'], true) ? $atts['service'] : 'all';
         $heading = sanitize_text_field((string) $atts['heading']);
+        if (!$this->settings->showBookingHeading()) {
+            $heading = '';
+        }
         $theme   = in_array($atts['theme'], ['auto', 'light', 'dark'], true) ? $atts['theme'] : 'auto';
 
         $dataAttrs = sprintf(

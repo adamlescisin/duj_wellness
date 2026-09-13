@@ -131,7 +131,7 @@ final class Plugin
         $priceRepo = new PriceRepository($wpdb);
         $assets    = new Assets($settings, $priceRepo, DUJ_WELLNESS_URL, DUJ_WELLNESS_VERSION);
         $assets->register();
-        (new Shortcode($assets))->register();
+        (new Shortcode($assets, $settings))->register();
     }
 
     public function registerAdmin(): void

@@ -402,4 +402,9 @@ final class Settings implements SettingsInterface
     {
         return (bool) $this->get('show_note_field', false);
     }
+
+    public function showBookingHeading(): bool
+    {
+        return (bool) $this->get('show_booking_heading', true);
+    }
 }

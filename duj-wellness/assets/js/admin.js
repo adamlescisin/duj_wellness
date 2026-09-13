@@ -999,7 +999,7 @@ function initSettingsPage() {
         const data = {};
         fd.forEach((v, k) => { data[k] = v; });
         // Checkboxes that may be missing
-        ['cutoff_enabled','debug_mode','show_guest_code_box','show_guests_field','show_note_field'].forEach(k => { if (!fd.has(k)) data[k] = '0'; });
+        ['cutoff_enabled','debug_mode','show_booking_heading','show_guest_code_box','show_guests_field','show_note_field'].forEach(k => { if (!fd.has(k)) data[k] = '0'; });
 
         try {
             await apiFetch('admin/settings', { method: 'PATCH', body: JSON.stringify(data) });

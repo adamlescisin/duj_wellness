@@ -162,6 +162,10 @@ final class SettingsPage
                 <div class="duj-settings-section">
                     <h3><?= esc_html__('Formulář rezervace', 'duj-wellness') ?></h3>
                     <div class="duj-settings-row">
+                        <label><?= esc_html__('Nadpis formuláře', 'duj-wellness') ?></label>
+                        <div><label><input type="checkbox" name="show_booking_heading" value="1" <?= checked($s->showBookingHeading(), true, false) ?>> <?= esc_html__('Zobrazit nadpis „Rezervace wellness"', 'duj-wellness') ?></label></div>
+                    </div>
+                    <div class="duj-settings-row">
                         <label><?= esc_html__('Box pro ubytované', 'duj-wellness') ?></label>
                         <div><label><input type="checkbox" name="show_guest_code_box" value="1" <?= checked($s->showGuestCodeBox(), true, false) ?>> <?= esc_html__('Zobrazit možnost zadat kód ubytovaného hosta', 'duj-wellness') ?></label></div>
                     </div>
