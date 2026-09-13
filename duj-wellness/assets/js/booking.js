@@ -177,24 +177,25 @@ function buildStepBar(active) {
 
 /* ─── Pricing header ─── */
 function buildPricingHeader() {
-  const prices = state.prices ?? {};
+  // When the guest-code box is disabled, hide the entire pricing header
+  if (!formOptions.showGuestCodeBox) return document.createDocumentFragment();
+
   const wrap = el('div', { className: 'duj-pricing-header' });
-  const tiers = el('div', { className: 'duj-pricing-tiers' });
+  const tiersEl = el('div', { className: 'duj-pricing-tiers' });
 
-  const PUBLIC_PRICES = { sud: 150000, sauna: 150000, 'sauna+sud': 200000 };
-  const GUEST_PRICES  = { sud: 100000, sauna: 100000, 'sauna+sud': 150000 };
+  const COMBOS = ['sud', 'sauna', 'sauna+sud'];
+  const formTiers = cfg.formTiers ?? [];
+  formTiers.forEach(tier => {
+    const line = el('span');
+    const tierPrices = tier.prices ?? {};
+    const parts = COMBOS.map(c => tierPrices[c] != null ? formatPrice(tierPrices[c]) : null).filter(Boolean);
+    const strong = el('strong');
+    strong.textContent = tier.label + ':';
+    line.append(strong, ' ' + parts.join(' / '));
+    tiersEl.append(line);
+  });
 
-  const pubLine = el('span');
-  pubLine.innerHTML = `<strong>${i18n.pricePublic}:</strong> ${formatPrice(PUBLIC_PRICES.sud)} / ${formatPrice(PUBLIC_PRICES.sauna)} / ${formatPrice(PUBLIC_PRICES['sauna+sud'])}`;
-
-  const guestLine = el('span');
-  guestLine.innerHTML = `<strong>${i18n.priceGuest}:</strong> ${formatPrice(GUEST_PRICES.sud)} / ${formatPrice(GUEST_PRICES.sauna)} / ${formatPrice(GUEST_PRICES['sauna+sud'])}`;
-
-  tiers.append(pubLine, guestLine);
-  wrap.append(tiers);
-
-  // Access code toggle — only rendered when enabled in admin settings
-  if (!formOptions.showGuestCodeBox) return wrap;
+  wrap.append(tiersEl);
 
   const codeWrap = el('div', { style: 'flex-basis:100%' });
   const codeToggle = el('button', { className: 'duj-code-toggle', type: 'button', textContent: i18n.guestCode });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Duj\Wellness\Frontend;
 
+use Duj\Wellness\Repository\PriceRepositoryInterface;
 use Duj\Wellness\Support\SettingsInterface;
 
 /**
@@ -16,6 +17,7 @@ final class Assets
 
     public function __construct(
         private readonly SettingsInterface $settings,
+        private readonly PriceRepositoryInterface $priceRepo,
         private readonly string $pluginUrl,
         private readonly string $pluginVersion,
     ) {}
@@ -84,6 +86,7 @@ final class Assets
                 'showGuestsField'  => $this->settings->showGuestsField(),
                 'showNoteField'    => $this->settings->showNoteField(),
             ],
+            'formTiers'      => $this->priceRepo->findFormTiersWithPrices(),
         ]);
     }
 

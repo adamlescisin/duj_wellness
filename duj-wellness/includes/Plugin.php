@@ -126,8 +126,10 @@ final class Plugin
 
     public function registerFrontend(): void
     {
-        $settings = Settings::instance();
-        $assets   = new Assets($settings, DUJ_WELLNESS_URL, DUJ_WELLNESS_VERSION);
+        global $wpdb;
+        $settings  = Settings::instance();
+        $priceRepo = new PriceRepository($wpdb);
+        $assets    = new Assets($settings, $priceRepo, DUJ_WELLNESS_URL, DUJ_WELLNESS_VERSION);
         $assets->register();
         (new Shortcode($assets))->register();
     }

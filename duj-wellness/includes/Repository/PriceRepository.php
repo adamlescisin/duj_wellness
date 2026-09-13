@@ -98,6 +98,46 @@ final class PriceRepository implements PriceRepositoryInterface
         return array_map([$this, 'hydratePrice'], $rows ?? []);
     }
 
+    public function findFormTiersWithPrices(): array
+    {
+        global $wpdb;
+        $tierTable  = $wpdb->prefix . 'duj_price_tiers';
+        $priceTable = $wpdb->prefix . 'duj_prices';
+
+        $tiers = $wpdb->get_results(
+            "SELECT slug, label FROM `{$tierTable}` WHERE show_in_form = 1 AND is_active = 1 ORDER BY sort_order ASC",
+            ARRAY_A
+        ) ?? [];
+
+        if (empty($tiers)) {
+            return [];
+        }
+
+        $prices = $wpdb->get_results(
+            "SELECT tier_slug, combo_key, MIN(amount_minor) AS amount_minor
+             FROM `{$priceTable}`
+             WHERE is_active = 1
+             GROUP BY tier_slug, combo_key",
+            ARRAY_A
+        ) ?? [];
+
+        $priceMap = [];
+        foreach ($prices as $p) {
+            $priceMap[$p['tier_slug']][$p['combo_key']] = (int) $p['amount_minor'];
+        }
+
+        $result = [];
+        foreach ($tiers as $tier) {
+            $result[] = [
+                'slug'   => $tier['slug'],
+                'label'  => $tier['label'],
+                'prices' => $priceMap[$tier['slug']] ?? [],
+            ];
+        }
+
+        return $result;
+    }
+
     private function hydrateTier(array $row): PriceTier
     {
         return new PriceTier(

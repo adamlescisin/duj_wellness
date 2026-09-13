@@ -23,4 +23,10 @@ interface PriceRepositoryInterface
 
     /** @return PriceRow[] */
     public function findAllPrices(): array;
+
+    /**
+     * Vrátí aktivní cenové hladiny s show_in_form=1 a jejich minimální ceny per combo.
+     * Výstup: [ ['slug'=>…, 'label'=>…, 'prices'=>['sud'=>…, 'sauna'=>…, 'sauna+sud'=>…]], … ]
+     */
+    public function findFormTiersWithPrices(): array;
 }
